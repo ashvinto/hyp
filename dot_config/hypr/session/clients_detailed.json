@@ -1,0 +1,28 @@
+[
+  {
+    "address": "0x55dea1d14970",
+    "class": "vivaldi-stable",
+    "title": "YouTube - Vivaldi",
+    "workspace": 1,
+    "pid": 4231,
+    "cmdline": "/opt/vivaldi/vivaldi-bin --profile-directory=Profile 5"
+  }
+,
+  {
+    "address": "0x55dea1dc5320",
+    "class": "foot",
+    "title": "Qwen - zoro",
+    "workspace": 2,
+    "pid": 5269,
+    "cmdline": "foot"
+  }
+,
+  {
+    "address": "0x55dea1d3f0a0",
+    "class": "foot",
+    "title": "✋  Action Required (zoro)                                                       ",
+    "workspace": 1,
+    "pid": 3827,
+    "cmdline": "foot"
+  }
+]

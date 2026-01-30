@@ -1,0 +1,70 @@
+#!/bin/bash
+
+# Auto-hiding bar script
+# Monitors cursor position and starts/stops the bar accordingly
+
+BAR_CONFIG="bar"
+CHECK_INTERVAL=0.1  # Check every 100ms
+TOP_MARGIN=5        # Pixels from top to trigger bar
+INACTIVITY_TIMEOUT=3  # Seconds of inactivity before hiding bar
+
+# Function to get cursor position
+get_cursor_pos() {
+    hyprctl cursorpos -j | jq -r '.x, .y'
+}
+
+# Function to start the bar
+start_bar() {
+    if ! pgrep -f "qs -c $BAR_CONFIG" > /dev/null; then
+        qs -c $BAR_CONFIG & disown
+        echo "$(date): Started bar"
+    fi
+}
+
+# Function to stop the bar
+stop_bar() {
+    if pgrep -f "qs -c $BAR_CONFIG" > /dev/null; then
+        pkill -f "qs -c $BAR_CONFIG"
+        echo "$(date): Stopped bar"
+    fi
+}
+
+# Initialize variables
+last_top_trigger=0
+bar_visible=false
+current_time=$(date +%s)
+
+echo "$(date): Starting auto-hiding bar monitor..."
+
+# Main loop
+while true; do
+    # Get current cursor position
+    cursor_x=$(hyprctl cursorpos -j | jq -r '.x')
+    cursor_y=$(hyprctl cursorpos -j | jq -r '.y')
+
+    # Get screen dimensions
+    screen_height=$(hyprctl monitors -j | jq -r '.[] | select(.focused==true) | .height')
+
+    # Calculate distance from top
+    distance_from_top=$cursor_y
+
+    # Check if cursor is at the top of the screen
+    if [ "$distance_from_top" -le "$TOP_MARGIN" ]; then
+        # Cursor is at the top - show the bar
+        start_bar
+        last_top_trigger=$(date +%s)
+        bar_visible=true
+    else
+        # Check if we should hide the bar due to inactivity
+        current_time=$(date +%s)
+        time_since_last_top=$((current_time - last_top_trigger))
+
+        if [ "$time_since_last_top" -gt "$INACTIVITY_TIMEOUT" ] && [ "$bar_visible" = true ]; then
+            # Hide the bar after inactivity timeout
+            stop_bar
+            bar_visible=false
+        fi
+    fi
+
+    sleep $CHECK_INTERVAL
+done

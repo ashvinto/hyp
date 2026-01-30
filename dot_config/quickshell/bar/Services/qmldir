@@ -1,0 +1,13 @@
+singleton PlayerService PlayerService.qml
+singleton NetworkService NetworkService.qml
+singleton Config Config.qml
+singleton WorkspaceService WorkspaceService.qml
+singleton SystemService SystemService.qml
+singleton QuickSettingsService QuickSettingsService.qml
+singleton ResourceService ResourceService.qml
+singleton ThemeService ThemeService.qml
+MediaControls MediaControls.qml
+MediaInfo MediaInfo.qml
+FullMediaPlayer FullMediaPlayer.qml
+SmallMediaPlayer SmallMediaPlayer.qml
+ClickableIcon ClickableIcon.qml

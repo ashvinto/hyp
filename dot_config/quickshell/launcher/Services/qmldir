@@ -1,0 +1,2 @@
+singleton AppService AppService.qml
+singleton ThemeService ThemeService.qml

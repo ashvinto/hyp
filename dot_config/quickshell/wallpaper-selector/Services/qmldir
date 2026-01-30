@@ -1,0 +1,4 @@
+singleton AppConfig AppConfig.qml
+singleton LocalWallpaperService LocalWallpaperService.qml
+singleton WallhavenService WallhavenService.qml
+singleton ThemeService ThemeService.qml

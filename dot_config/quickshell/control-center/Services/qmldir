@@ -1,0 +1,6 @@
+singleton VolumeService VolumeService.qml
+singleton BrightnessService BrightnessService.qml
+singleton ThemeService ThemeService.qml
+singleton SystemService SystemService.qml
+singleton QuickSettingsService QuickSettingsService.qml
+singleton ResourceService ResourceService.qml

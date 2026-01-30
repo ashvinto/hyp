@@ -1,0 +1,2 @@
+singleton KeybindService KeybindService.qml
+singleton ThemeService ThemeService.qml

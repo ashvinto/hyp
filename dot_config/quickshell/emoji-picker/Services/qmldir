@@ -1,0 +1,2 @@
+singleton EmojiService EmojiService.qml
+singleton ThemeService ThemeService.qml

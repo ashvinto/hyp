@@ -1,0 +1,172 @@
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import Quickshell
+import Quickshell.Wayland
+import "../../Common/Services"
+
+PanelWindow {
+    id: root
+
+    anchors.top: true
+    anchors.bottom: true
+    anchors.left: true
+    anchors.right: true
+    color: "transparent"
+
+    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+
+    MouseArea {
+        anchors.fill: parent
+        onClicked: Qt.quit()
+        z: -1
+    }
+
+    readonly property color cBg: ThemeService.background
+    readonly property color cSurface: ThemeService.surface
+    readonly property color cText: ThemeService.text
+    readonly property color cAccent: ThemeService.accent
+
+    Component.onCompleted: {
+        AppService.scan()
+        searchInput.forceActiveFocus()
+    }
+
+    property string filterText: ""
+    property var filteredApps: {
+        var list = AppService.apps
+        if (filterText === "") return list
+        var lower = filterText.toLowerCase()
+        return list.filter(app => app.name.toLowerCase().includes(lower))
+    }
+
+    Rectangle {
+        anchors.centerIn: parent
+        width: 750
+        height: 550
+        color: cBg
+        radius: 12
+        border.color: cSurface
+        border.width: 1
+        clip: true
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 20
+            spacing: 15
+
+            Rectangle {
+                Layout.fillWidth: true
+                height: 45
+                color: cSurface
+                radius: 8
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.margins: 10
+                    spacing: 10
+
+                    Text { text: "🔍"; color: cText; font.pointSize: 12 }
+
+                    TextInput {
+                        id: searchInput
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        verticalAlignment: TextInput.AlignVCenter
+                        font.pointSize: 12
+                        color: cText
+                        clip: true
+
+                        onTextChanged: root.filterText = text
+
+                        Keys.onDownPressed: gridView.forceActiveFocus()
+                        Keys.onEscapePressed: Qt.quit()
+                        onAccepted: {
+                            if (root.filteredApps.length > 0) {
+                                AppService.launch(root.filteredApps[0].exec)
+                            }
+                        }
+                    }
+                }
+            }
+
+            GridView {
+                id: gridView
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                cellWidth: 115
+                cellHeight: 130
+                clip: true
+                focus: true
+
+                model: root.filteredApps
+                cacheBuffer: 500 // Speed up scrolling
+
+                highlight: Rectangle {
+                    color: cSurface
+                    radius: 8
+                    border.color: cAccent
+                    border.width: 1
+                }
+                highlightFollowsCurrentItem: true
+
+                delegate: Item {
+                    width: gridView.cellWidth - 10
+                    height: gridView.cellHeight - 10
+
+                    MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onEntered: gridView.currentIndex = index
+                        onClicked: AppService.launch(modelData.exec)
+                    }
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 5
+                        spacing: 5
+
+                        Image {
+                            Layout.alignment: Qt.AlignHCenter
+                            Layout.preferredWidth: 48
+                            Layout.preferredHeight: 48
+                            // Correct icon source and use sourceSize for optimization
+                            source: modelData.icon ? ("image://icon/" + modelData.icon) : ""
+                            sourceSize: Qt.size(64, 64)
+                            fillMode: Image.PreserveAspectFit
+                            asynchronous: true
+                            cache: true
+                        }
+
+                        Text {
+                            Layout.fillWidth: true
+                            text: modelData.name
+                            color: cText
+                            font.pixelSize: 12
+                            horizontalAlignment: Text.AlignHCenter
+                            wrapMode: Text.WordWrap
+                            elide: Text.ElideRight
+                            maximumLineCount: 2
+                        }
+                    }
+                }
+
+                Keys.onReturnPressed: {
+                    if (currentIndex >= 0 && currentIndex < root.filteredApps.length) {
+                        AppService.launch(root.filteredApps[currentIndex].exec)
+                    }
+                }
+                Keys.onUpPressed: {
+                    if (currentIndex < 6) { // Approx first row
+                        searchInput.forceActiveFocus()
+                        currentIndex = -1
+                    } else {
+                        moveCurrentIndexUp()
+                    }
+                }
+                Keys.onEscapePressed: Qt.quit()
+            }
+        }
+    }
+}

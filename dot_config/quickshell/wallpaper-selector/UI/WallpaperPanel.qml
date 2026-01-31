@@ -29,10 +29,11 @@ PanelWindow {
     readonly property color cHover: ThemeService.surface_variant
 
     function applyWallpaper(path) {
-        // Set wallpaper with swww and generate colors with matugen
-        // This will apply the theme system-wide (Hyprland, Waybar, Kitty, etc.)
+        // Set wallpaper with swww, generate colors with matugen AND wallust
+        // This will apply the theme system-wide
         var fullCmd = `swww img '${path}' --transition-type grow --transition-pos 0.5,0.5 --transition-duration 1 && \\
                        matugen image '${path}' --type scheme-fruit-salad --mode dark && \\
+                       wallust run '${path}' && \\
                        echo '${path}' > /home/zoro/.cache/current_wallpaper`
 
         wallpaperProcess.command = ["sh", "-c", fullCmd];

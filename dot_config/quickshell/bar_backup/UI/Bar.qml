@@ -19,6 +19,7 @@ PanelWindow {
 
     property bool wifiMenuOpen: false
     property bool powerMenuOpen: false
+    property var wifiConnectingData: null // { ssid: string, security: string, method: string }
     
     // Geometric constants
     readonly property int menuWidth: 300
@@ -36,8 +37,12 @@ PanelWindow {
         // Available Networks Section
         var availNets = NetworkService.networks.filter(function(n) { return !n.active && n.ssid !== NetworkService.activeWifiSsid })
         h += Math.min(availNets.length * rowHeight + 40, 350)
-        // Footer (Networking, WiFi toggles, manual, editor)
-        h += 175
+        // Footer (Networking, WiFi toggles, editor)
+        h += 140
+        // Password Area
+        if (wifiConnectingData !== null) {
+            h += wifiConnectingData.method === "enterprise" ? 100 : 60
+        }
         return h + 40
     }
     
@@ -55,6 +60,7 @@ PanelWindow {
             if (!hovered) {
                 wifiMenuOpen = false
                 powerMenuOpen = false
+                wifiConnectingData = null
             }
         }
     }
@@ -88,7 +94,7 @@ PanelWindow {
             radius: 16; color: cBg; border.color: cSurface; border.width: 1
             z: 10 
             Text { anchors.centerIn: parent; text: "󰕮"; color: cAccent; font.pixelSize: 20; font.family: "Symbols Nerd Font" }
-            MouseArea { anchors.fill: parent; onClicked: Quickshell.execDetached(["quickshell", "-c", "dashboard"]) }
+            MouseArea { anchors.fill: parent; onClicked: Quickshell.execDetached(["qs", "-c", "dashboard"]) }
         }
 
         RowLayout {
@@ -273,31 +279,25 @@ PanelWindow {
                         Text { text: "WI-FI NETWORKS"; color: cDim; font.bold: true; font.pixelSize: 10; Layout.fillWidth: true }
                         
                         // Scan Button
-                        Item {
-                            Layout.preferredWidth: scanRow.implicitWidth
-                            Layout.preferredHeight: 30
-                            RowLayout {
-                                id: scanRow
-                                anchors.fill: parent
-                                spacing: 6
-                                Text {
-                                    id: scanIcon
-                                    text: "󰑐"
-                                    color: cAccent
-                                    font.pixelSize: 12
-                                    font.family: "Symbols Nerd Font"
-                                    transformOrigin: Item.Center
-                                    RotationAnimation on rotation {
-                                        running: NetworkService.scanning
-                                        from: 0; to: 360; duration: 1000; loops: Animation.Infinite
-                                    }
+                        RowLayout {
+                            spacing: 6
+                            Text {
+                                id: scanIcon
+                                text: "󰑐"
+                                color: cAccent
+                                font.pixelSize: 12
+                                font.family: "Symbols Nerd Font"
+                                transformOrigin: Item.Center
+                                RotationAnimation on rotation {
+                                    running: NetworkService.scanning
+                                    from: 0; to: 360; duration: 1000; loops: Animation.Infinite
                                 }
-                                Text {
-                                    text: NetworkService.scanning ? "Scanning..." : "Scan"
-                                    color: cAccent
-                                    font.pixelSize: 10
-                                    font.bold: true
-                                }
+                            }
+                            Text {
+                                text: NetworkService.scanning ? "Scanning..." : "Scan"
+                                color: cAccent
+                                font.pixelSize: 10
+                                font.bold: true
                             }
                             MouseArea {
                                 anchors.fill: parent
@@ -373,20 +373,18 @@ PanelWindow {
                             MouseArea {
                                 id: hoverAvail; anchors.fill: parent
                                 onClicked: {
-                                    var isEnterprise = modelData.security.includes("802.1X") || modelData.security.includes("EAP")
-                                    var isOpen = modelData.security === "" || modelData.security === "--"
-                                    var method = isEnterprise ? "enterprise" : (isOpen ? "open" : "wpa")
-                                    
-                                                                    // Launch standalone dialog process with env vars
-                                                                    Quickshell.execDetached([
-                                                                        "sh", "-c", 
-                                                                        "QS_WIFI_SSID='" + modelData.ssid.replace(/'/g, "'\\''") + "' " +
-                                                                        "QS_WIFI_SECURITY='" + modelData.security + "' " +
-                                                                        "QS_WIFI_METHOD='" + method + "' " +
-                                                                        "QS_WIFI_SIGNAL='" + modelData.signal + "' " +
-                                                                        "quickshell -c /home/zoro/.config/quickshell/network-dialog"
-                                                                    ])                                    
-                                    wifiMenuOpen = false
+                                    if (modelData.security === "" || modelData.security === "--") { 
+                                        NetworkService.connect(modelData.ssid) 
+                                    } else {
+                                        var isEnterprise = modelData.security.includes("802.1X") || modelData.security.includes("EAP")
+                                        wifiConnectingData = {
+                                            ssid: modelData.ssid,
+                                            security: modelData.security,
+                                            method: isEnterprise ? "enterprise" : "wpa"
+                                        }
+                                        if (isEnterprise) identityInput.forceActiveFocus()
+                                        else passInput.forceActiveFocus()
+                                    }
                                 }
                             }
                         }
@@ -419,29 +417,6 @@ PanelWindow {
                     }
 
                     Rectangle {
-                        Layout.fillWidth: true; height: 32; radius: 8; color: hoverHidden.hovered ? cSurface : "transparent"
-                        RowLayout {
-                            anchors.fill: parent; anchors.leftMargin: 8; spacing: 10
-                            Text { text: "󰒄"; color: cAccent; font.pixelSize: 14; font.family: "Symbols Nerd Font" }
-                            Text { text: "Hidden Network / Manual"; color: cFg; font.pixelSize: 12 }
-                        }
-                        MouseArea { 
-                            id: hoverHidden; anchors.fill: parent
-                            onClicked: {
-                                Quickshell.execDetached([
-                                    "sh", "-c", 
-                                    "QS_WIFI_SSID='' " +
-                                    "QS_WIFI_SECURITY='WPA2' " +
-                                    "QS_WIFI_METHOD='enterprise' " +
-                                    "QS_WIFI_SIGNAL='100' " +
-                                    "quickshell -c /home/zoro/.config/quickshell/network-dialog"
-                                ])
-                                wifiMenuOpen = false
-                            }
-                        }
-                    }
-
-                    Rectangle {
                         Layout.fillWidth: true; height: 32; radius: 8; color: hoverEdit.hovered ? cSurface : "transparent"
                         RowLayout {
                             anchors.fill: parent; anchors.leftMargin: 8; spacing: 10
@@ -449,6 +424,48 @@ PanelWindow {
                             Text { text: "Edit Connections"; color: cFg; font.pixelSize: 12 }
                         }
                         MouseArea { id: hoverEdit; anchors.fill: parent; onClicked: NetworkService.openEditor() }
+                    }
+                }
+            }
+            
+            // Password / Identity Overlay
+            Rectangle {
+                anchors.bottom: parent.bottom; anchors.bottomMargin: 10; anchors.horizontalCenter: parent.horizontalCenter
+                width: parent.width - 24; height: wifiConnectingData !== null ? (wifiConnectingData.method === "enterprise" ? 100 : 50) : 0
+                color: cSurface; radius: 12; visible: height > 0; clip: true; z: 100
+                border.color: cAccent; border.width: 1
+                
+                ColumnLayout {
+                    anchors.fill: parent; anchors.margins: 10; spacing: 8
+                    
+                    // Identity field for Enterprise
+                    TextField {
+                        id: identityInput; Layout.fillWidth: true; Layout.preferredHeight: 30
+                        visible: wifiConnectingData !== null && wifiConnectingData.method === "enterprise"
+                        placeholderText: "Identity (Username)..."; color: cFg; font.pixelSize: 12; background: null
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true; spacing: 10
+                        TextField {
+                            id: passInput; Layout.fillWidth: true; Layout.preferredHeight: 30
+                            placeholderText: wifiConnectingData !== null ? ("Password for " + wifiConnectingData.ssid + "...") : "Password..."
+                            color: cFg; echoMode: TextField.Password; font.pixelSize: 12; background: null
+                            onAccepted: connectBtn.clicked()
+                        }
+                        Button {
+                            id: connectBtn; text: "Connect"; Layout.preferredWidth: 70; Layout.preferredHeight: 28
+                            onClicked: {
+                                if (wifiConnectingData.method === "enterprise") {
+                                    NetworkService.connectEnterprise(wifiConnectingData.ssid, identityInput.text, passInput.text)
+                                } else {
+                                    NetworkService.connectWithPassword(wifiConnectingData.ssid, passInput.text)
+                                }
+                                wifiConnectingData = null; passInput.text = ""; identityInput.text = ""; wifiMenuOpen = false
+                            }
+                            background: Rectangle { color: cAccent; radius: 6 }
+                            contentItem: Text { text: parent.text; color: cBg; font.bold: true; font.pixelSize: 10; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        }
                     }
                 }
             }

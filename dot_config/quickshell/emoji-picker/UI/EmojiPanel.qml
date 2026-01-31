@@ -37,9 +37,11 @@ PanelWindow {
     }
 
     Component.onCompleted: {
+        console.log("EmojiPanel Component.onCompleted")
         EmojiService.scan()
         visible_state = true
         searchInput.forceActiveFocus()
+        console.log("visible_state set to:", visible_state)
     }
 
     function close() {

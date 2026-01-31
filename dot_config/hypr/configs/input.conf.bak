@@ -12,11 +12,12 @@ input {
   numlock_by_default=true
   touchpad {
     natural_scroll = true
-    # tap_to_click = true
   } 
-  scroll_factor = 0.9
+  scroll_factor=0.9
 } 
 
+
+# https://wiki.hyprland.org/Configuring/Variables/#gestures
 gesture = 4, horizontal, workspace
 
 # Example per-device config

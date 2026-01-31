@@ -1,0 +1,2 @@
+singleton NetworkService NetworkService.qml
+singleton Config Config.qml

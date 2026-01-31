@@ -1,10 +1,8 @@
 import QtQuick
 import Quickshell
-import Quickshell.Io
 import "./UI"
 
 ShellRoot {
     id: root
-
-    EmojiPanel { id: panel }
+    Viewer { id: viewer }
 }

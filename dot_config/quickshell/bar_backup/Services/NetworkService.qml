@@ -23,10 +23,6 @@ Singleton {
         activeWifiProc.running = true
     }
 
-    function notify(title, message) {
-        Quickshell.execDetached(["notify-send", "-a", "Network Manager", title, message])
-    }
-
     Process { 
         id: activeWifiProc; 
         command: ["sh", "-c", "nmcli -t -f ACTIVE,SSID dev wifi | grep '^yes' | cut -d: -f2"]; 
@@ -58,40 +54,31 @@ Singleton {
     }
 
     function connect(ssid) {
-        notify("Connecting", "Attempting to connect to " + ssid)
         Quickshell.execDetached(["nmcli", "device", "wifi", "connect", ssid])
-        scanTimer.start()
+        scan()
     }
 
     function connectWithPassword(ssid, password) {
-        notify("Connecting", "Attempting to connect to " + ssid)
-        var cmd = "nmcli connection delete \"" + ssid.replace(/"/g, '\\"') + "\" || true; " + 
-                  "nmcli device wifi connect \"" + ssid.replace(/"/g, '\\"') + "\" password \"" + password.replace(/"/g, '\\"') + "\"";
-        Quickshell.execDetached(["sh", "-c", cmd])
-        scanTimer.start()
+        var cmd = "nmcli device wifi connect '" + ssid + "' password '" + password + "'";
+        Quickshell.execDetached(["sh", "-c", cmd]);
+        scan()
     }
 
     function connectEnterprise(ssid, identity, password) {
-        notify("Connecting", "Attempting to connect to " + ssid + " (Enterprise)")
-        var deleteCmd = "nmcli connection delete \"" + ssid.replace(/"/g, '\\"') + "\" || true; "
-        var addCmd = "IFACE=$(nmcli -t -f TYPE,DEVICE device | grep '^wifi' | cut -d: -f2 | head -n1); " + 
-                     "nmcli connection add type wifi con-name \"" + ssid.replace(/"/g, '\\"') + "\" ifname \"$IFACE\" ssid \"" + ssid.replace(/"/g, '\\"') + "\" -- " + 
-                     "802-11-wireless-security.key-mgmt wpa-eap " + 
-                     "802-1x.eap peap " + 
-                     "802-1x.phase2-auth mschapv2 " + 
-                     "802-1x.identity \"" + identity.replace(/"/g, '\\"') + "\" " + 
-                     "802-1x.password \"" + password.replace(/"/g, '\\"') + "\" " + 
-                     "802-1x.ca-cert \"\" " + 
-                     "802-1x.domain-suffix-match \"\"; " + 
-                     "nmcli connection up \"" + ssid.replace(/"/g, '\\"') + "\""
-        Quickshell.execDetached(["sh", "-c", deleteCmd + addCmd])
-        scanTimer.start()
-    }
+        var cmd = "IFACE=$(nmcli -t -f TYPE,DEVICE device | grep '^wifi' | cut -d: -f2 | head -n1); " +
+                  "nmcli connection delete \"" + ssid + "\" || true; " +
+                  "nmcli connection add type wifi con-name \"" + ssid + "\" ifname \"$IFACE\" ssid \"" + ssid + "\" -- " +
+                  "802-11-wireless-security.key-mgmt wpa-eap " +
+                  "802-1x.eap peap " +
+                  "802-1x.phase2-auth mschapv2 " +
+                  "802-1x.identity \"" + identity + "\" " +
+                  "802-1x.password \"" + password + "\" " +
+                  "802-1x.ca-cert \"\" " +
+                  "802-1x.domain-suffix-match \"; " +
+                  "nmcli connection up \"" + ssid + "\"";
 
-    Timer {
-        id: scanTimer
-        interval: 2000
-        onTriggered: scan()
+        Quickshell.execDetached(["sh", "-c", cmd])
+        scan()
     }
 
     function openEditor() {
@@ -107,20 +94,17 @@ Singleton {
                     var lines = text.trim().split("\n")
                     var list = []
                     var seen = {}
-                    var activeSsid = ""
                     for (var i = 0; i < lines.length; i++) {
                         var parts = lines[i].split(":")
                         if (parts.length >= 5 && parts[0] !== "") {
                             var ssid = parts[0]
-                            var active = parts[4] === "yes"
-                            if (active) activeSsid = ssid
                             if (!seen[ssid]) {
                                 list.push({
                                     "ssid": ssid,
                                     "signal": parseInt(parts[1]),
                                     "bars": parts[2],
                                     "security": parts[3],
-                                    "active": active
+                                    "active": parts[4] === "yes"
                                 })
                                 seen[ssid] = true
                             }
@@ -128,7 +112,6 @@ Singleton {
                     }
                     list.sort(function(a, b) { return b.signal - a.signal })
                     root.networks = list
-                    if (activeSsid !== "") root.activeWifiSsid = activeSsid
                 }
                 scanning = false
             }

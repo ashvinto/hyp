@@ -1,0 +1,67 @@
+pragma Singleton
+import QtQuick
+import Quickshell
+import Quickshell.Io
+
+Singleton {
+    id: root
+
+    property bool wifiEnabled: false
+    property bool btEnabled: false
+    property int batteryLevel: 0
+    property bool isCharging: false
+
+    function toggleWifi() { Quickshell.execDetached(["sh", "-c", "nmcli radio wifi | grep -q 'enabled' && nmcli radio wifi off || nmcli radio wifi on"]) }
+    function toggleBluetooth() { Quickshell.execDetached(["sh", "-c", "bluetoothctl show | grep -q 'Powered: yes' && bluetoothctl power off || bluetoothctl power on"]) }
+    function lock() { Quickshell.execDetached(["hyprlock"]) }
+    function logout() { Quickshell.execDetached(["hyprctl", "dispatch", "exit"]) }
+    function shutdown() { Quickshell.execDetached(["shutdown", "now"]) }
+    function reboot() { Quickshell.execDetached(["reboot"]) }
+
+    function updateStatus() {
+        // Battery status is checked using a Process component
+        batteryChecker.running = true
+        wifiChecker.running = true
+        btChecker.running = true
+    }
+
+    Process {
+        id: batteryChecker
+        command: ["sh", "-c", "cat /sys/class/power_supply/BAT*/capacity 2>/dev/null | head -n1; cat /sys/class/power_supply/BAT*/status 2>/dev/null | head -n1"]
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (text) {
+                    var lines = text.trim().split("\n")
+                    if (lines.length >= 1) root.batteryLevel = parseInt(lines[0]) || 0
+                    if (lines.length >= 2) root.isCharging = lines[1].trim() === "Charging"
+                }
+            }
+        }
+    }
+
+    Process {
+        id: wifiChecker
+        command: ["nmcli", "radio", "wifi"]
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (text) root.wifiEnabled = text.includes("enabled")
+            }
+        }
+    }
+
+    Process {
+        id: btChecker
+        command: ["bash", "-c", "bluetoothctl show 2>/dev/null | grep 'Powered:'"]
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (text) root.btEnabled = text.includes("yes")
+            }
+        }
+    }
+
+    Timer { interval: 10000; running: true; repeat: true; onTriggered: updateStatus() }
+    Component.onCompleted: updateStatus()
+}

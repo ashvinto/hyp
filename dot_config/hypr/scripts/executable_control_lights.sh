@@ -15,8 +15,8 @@ case "$1" in
     stop)
         if pgrep -f "$PNAME" > /dev/null; then
             pkill -f "$PNAME"
-            # Reset to Dim Blue (Idle color) manually since the script might die before resetting
-            asusctl aura static -c 000033
+            # Reset to Green (40% intensity) when deactivating
+            asusctl aura effect static -c 006600
             notify-send "Keyboard Blink" "Deactivated."
         else
             notify-send "Keyboard Blink" "Not running."

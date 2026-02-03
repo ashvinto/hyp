@@ -61,8 +61,10 @@ Singleton {
             if (config.caCert && config.caCert !== "") {
                 cmd += "802-1x.ca-cert '" + config.caCert.replace(/'/g, "'\'\''") + "' "
             } else {
-                // IMPORTANT: For some Enterprise networks, we must explicitly ignore CA cert
-                cmd += "802-1x.ca-cert none 802-1x.system-ca-certs no "
+                // For many Enterprise networks, especially those without certificate validation,
+                // we should not specify ca-cert at all, rather than setting it to 'none'
+                // which causes errors. Only set system-ca-certs to no when no cert is provided.
+                cmd += "802-1x.system-ca-certs no "
             }
         }
 

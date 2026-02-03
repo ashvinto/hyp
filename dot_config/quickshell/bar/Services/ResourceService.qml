@@ -44,6 +44,6 @@ Singleton {
         }
     }
 
-    Timer { interval: 2000; running: true; repeat: true; onTriggered: update() }
+    Timer { interval: 10000; running: true; repeat: true; onTriggered: update() }
     Component.onCompleted: update()
 }

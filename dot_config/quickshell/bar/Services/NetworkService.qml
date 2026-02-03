@@ -33,8 +33,20 @@ Singleton {
         stdout: StdioCollector { onStreamFinished: root.activeWifiSsid = text.trim() } 
     }
 
+    property var lastScanTime: 0
+    property int scanCooldown: 15000 // 15 seconds
+
     function scan() {
+        var now = new Date().getTime()
         if (scanning) return
+        
+        // Prevent spamming scans which kills connections on some drivers
+        if (now - lastScanTime < scanCooldown) {
+            console.log("Skipping scan: Cooldown active")
+            return
+        }
+        
+        lastScanTime = now
         scanning = true
         scanProc.running = true
         refreshStatus()

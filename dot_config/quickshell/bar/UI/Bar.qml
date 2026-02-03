@@ -18,6 +18,7 @@ PanelWindow {
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
 
     property bool wifiMenuOpen: false
+    property bool bluetoothMenuOpen: false
     property bool powerMenuOpen: false
     
     // Geometric constants
@@ -40,11 +41,18 @@ PanelWindow {
         h += 175
         return h + 40
     }
+
+    property real bluetoothMenuHeight: {
+        var h = 60 // Header
+        h += Math.min(BluetoothService.devices.length * rowHeight + 40, 350)
+        h += 100 // Footer
+        return h + 40
+    }
     
     property real powerMenuHeight: 280
 
-    implicitHeight: (wifiMenuOpen || powerMenuOpen) ? 850 : (hoverHandler.hovered ? 42 : 1)
-    exclusiveZone: (wifiMenuOpen || powerMenuOpen || hoverHandler.hovered) ? 42 : 0
+    implicitHeight: (wifiMenuOpen || bluetoothMenuOpen || powerMenuOpen) ? 850 : (hoverHandler.hovered ? 42 : 1)
+    exclusiveZone: (wifiMenuOpen || bluetoothMenuOpen || powerMenuOpen || hoverHandler.hovered) ? 42 : 0
     
     Behavior on implicitHeight { NumberAnimation { duration: 400; easing.type: Easing.OutExpo } }
     color: "transparent"
@@ -54,6 +62,7 @@ PanelWindow {
         onHoveredChanged: {
             if (!hovered) {
                 wifiMenuOpen = false
+                bluetoothMenuOpen = false
                 powerMenuOpen = false
             }
         }
@@ -76,7 +85,7 @@ PanelWindow {
     Rectangle {
         id: barContainer
         anchors.fill: parent
-        anchors.topMargin: (hoverHandler.hovered || wifiMenuOpen || powerMenuOpen) ? 0 : -42
+        anchors.topMargin: (hoverHandler.hovered || wifiMenuOpen || bluetoothMenuOpen || powerMenuOpen) ? 0 : -42
         color: "transparent"
         Behavior on anchors.topMargin { NumberAnimation { duration: 400; easing.type: Easing.OutExpo } }
 
@@ -88,7 +97,8 @@ PanelWindow {
             radius: 16; color: cBg; border.color: cSurface; border.width: 1
             z: 10 
             Text { anchors.centerIn: parent; text: "󰕮"; color: cAccent; font.pixelSize: 20; font.family: "Symbols Nerd Font" }
-            MouseArea { anchors.fill: parent; onClicked: Quickshell.execDetached(["quickshell", "-c", "dashboard"]) }
+            MouseArea { anchors.fill: parent; onClicked: Quickshell.execDetached(["quickshell", "-c", "dashboard"])
+            }
         }
 
         RowLayout {
@@ -106,7 +116,8 @@ PanelWindow {
                 radius: 16; color: cBg; border.color: cSurface; border.width: 1
                 RowLayout {
                     id: leftLayout; anchors.centerIn: parent; spacing: 12
-                    Text { text: "󰣇"; color: cAccent; font.pixelSize: 18; font.family: "Symbols Nerd Font"; MouseArea { anchors.fill: parent; onClicked: Quickshell.execDetached(["qs", "-c", "launcher"]) } }
+                    Text { text: "󰣇"; color: cAccent; font.pixelSize: 18; font.family: "Symbols Nerd Font"; MouseArea { anchors.fill: parent; onClicked: Quickshell.execDetached(["qs", "-c", "launcher"])
+                    } }
                     RowLayout {
                         spacing: 8
                         Text { text: ""; color: cAccent; font.pixelSize: 14 }
@@ -145,7 +156,7 @@ PanelWindow {
                             model: SystemTray.items
                             delegate: Item {
                                 width: 18; height: 18
-                                visible: modelData.identity !== "nm-applet"
+                                visible: modelData.identity !== "nm-applet" && modelData.identity !== "blueman"
                                 Image { anchors.fill: parent; source: modelData.icon; fillMode: Image.PreserveAspectFit }
                                 MouseArea {
                                     anchors.fill: parent
@@ -161,8 +172,10 @@ PanelWindow {
                         }
                     }
 
-                    Text { text: "󰅍"; color: cAccent; font.pixelSize: 14; font.family: "Symbols Nerd Font"; MouseArea { anchors.fill: parent; onClicked: Quickshell.execDetached(["qs", "-c", "clipboard"]) } }
-                    Text { text: "󰞅"; color: cAccent; font.pixelSize: 14; font.family: "Symbols Nerd Font"; MouseArea { anchors.fill: parent; onClicked: Quickshell.execDetached(["qs", "-c", "emoji-picker"]) } }
+                    Text { text: "󰅍"; color: cAccent; font.pixelSize: 14; font.family: "Symbols Nerd Font"; MouseArea { anchors.fill: parent; onClicked: Quickshell.execDetached(["qs", "-c", "clipboard"])
+                    } }
+                    Text { text: "󰞅"; color: cAccent; font.pixelSize: 14; font.family: "Symbols Nerd Font"; MouseArea { anchors.fill: parent; onClicked: Quickshell.execDetached(["qs", "-c", "emoji-picker"])
+                    } }
 
                     Rectangle {
                         width: 26; height: 26; radius: 13
@@ -173,9 +186,24 @@ PanelWindow {
                             color: QuickSettingsService.wifiEnabled ? (wifiMenuOpen ? cAccent : cFg) : cRed
                             font.pixelSize: 14; font.family: "Symbols Nerd Font"
                         }
-                        MouseArea { 
+                        MouseArea {
                             anchors.fill: parent
-                            onClicked: { wifiMenuOpen = !wifiMenuOpen; if (wifiMenuOpen) { powerMenuOpen = false; NetworkService.scan() } }
+                            onClicked: { wifiMenuOpen = !wifiMenuOpen; if (wifiMenuOpen) { powerMenuOpen = false; bluetoothMenuOpen = false; NetworkService.scan() } }
+                        }
+                    }
+
+                    Rectangle {
+                        width: 26; height: 26; radius: 13
+                        color: bluetoothMenuOpen ? Qt.rgba(cAccent.r, cAccent.g, cAccent.b, 0.15) : "transparent"
+                        Text {
+                            anchors.centerIn: parent
+                            text: BluetoothService.powered ? "󰂯" : "󰂲"
+                            color: BluetoothService.powered ? (bluetoothMenuOpen ? cAccent : cFg) : cRed
+                            font.pixelSize: 16; font.family: "Symbols Nerd Font"
+                        }
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: { bluetoothMenuOpen = !bluetoothMenuOpen; if (bluetoothMenuOpen) { powerMenuOpen = false; wifiMenuOpen = false; BluetoothService.scan() } }
                         }
                     }
 
@@ -221,7 +249,7 @@ PanelWindow {
                         }
                         MouseArea {
                             anchors.fill: parent
-                            onClicked: { powerMenuOpen = !powerMenuOpen; if (powerMenuOpen) wifiMenuOpen = false }
+                            onClicked: { powerMenuOpen = !powerMenuOpen; if (powerMenuOpen) { wifiMenuOpen = false; bluetoothMenuOpen = false } }
                         }
                     }
 
@@ -229,7 +257,8 @@ PanelWindow {
                     Rectangle {
                         width: 24; height: 24; radius: 12; color: cSurface
                         Text { anchors.centerIn: parent; text: ""; color: cRed; font.pixelSize: 12 }
-                        MouseArea { anchors.fill: parent; onClicked: Quickshell.execDetached(["sh", "-c", "~/.config/hypr/scripts/powermenu.sh"]) }
+                        MouseArea { anchors.fill: parent; onClicked: Quickshell.execDetached(["sh", "-c", "~/.config/hypr/scripts/powermenu.sh"])
+                        }
                     }
                 }
             }
@@ -377,15 +406,14 @@ PanelWindow {
                                     var isOpen = modelData.security === "" || modelData.security === "--"
                                     var method = isEnterprise ? "enterprise" : (isOpen ? "open" : "wpa")
                                     
-                                                                    // Launch standalone dialog process with env vars
-                                                                    Quickshell.execDetached([
-                                                                        "sh", "-c", 
-                                                                        "QS_WIFI_SSID='" + modelData.ssid.replace(/'/g, "'\\''") + "' " +
-                                                                        "QS_WIFI_SECURITY='" + modelData.security + "' " +
-                                                                        "QS_WIFI_METHOD='" + method + "' " +
-                                                                        "QS_WIFI_SIGNAL='" + modelData.signal + "' " +
-                                                                        "quickshell -c /home/zoro/.config/quickshell/network-dialog"
-                                                                    ])                                    
+                                    Quickshell.execDetached([
+                                        "sh", "-c", 
+                                        "QS_WIFI_SSID='" + modelData.ssid.replace(/'/g, "'\\''") + "' " + 
+                                        "QS_WIFI_SECURITY='" + modelData.security + "' " + 
+                                        "QS_WIFI_METHOD='" + method + "' " + 
+                                        "QS_WIFI_SIGNAL='" + modelData.signal + "' " + 
+                                        "quickshell -c /home/zoro/.config/quickshell/network-dialog"
+                                    ])                                    
                                     wifiMenuOpen = false
                                 }
                             }
@@ -425,15 +453,15 @@ PanelWindow {
                             Text { text: "󰒄"; color: cAccent; font.pixelSize: 14; font.family: "Symbols Nerd Font" }
                             Text { text: "Hidden Network / Manual"; color: cFg; font.pixelSize: 12 }
                         }
-                        MouseArea { 
+                        MouseArea {
                             id: hoverHidden; anchors.fill: parent
                             onClicked: {
                                 Quickshell.execDetached([
                                     "sh", "-c", 
-                                    "QS_WIFI_SSID='' " +
-                                    "QS_WIFI_SECURITY='WPA2' " +
-                                    "QS_WIFI_METHOD='enterprise' " +
-                                    "QS_WIFI_SIGNAL='100' " +
+                                    "QS_WIFI_SSID='' " + 
+                                    "QS_WIFI_SECURITY='WPA2' " + 
+                                    "QS_WIFI_METHOD='enterprise' " + 
+                                    "QS_WIFI_SIGNAL='100' " + 
                                     "quickshell -c /home/zoro/.config/quickshell/network-dialog"
                                 ])
                                 wifiMenuOpen = false
@@ -449,6 +477,135 @@ PanelWindow {
                             Text { text: "Edit Connections"; color: cFg; font.pixelSize: 12 }
                         }
                         MouseArea { id: hoverEdit; anchors.fill: parent; onClicked: NetworkService.openEditor() }
+                    }
+                }
+            }
+        }
+
+        // --- Bluetooth Island ---
+        Rectangle {
+            id: bluetoothIsland
+            anchors.top: parent.top; anchors.topMargin: bluetoothMenuOpen ? 52 : 40
+            anchors.right: parent.right; anchors.rightMargin: 15
+            width: menuWidth; height: bluetoothMenuOpen ? bluetoothMenuHeight : 0
+            color: Qt.rgba(0.12, 0.12, 0.18, 0.98)
+            radius: 20; border.color: Qt.rgba(1, 1, 1, 0.1); border.width: 1
+            visible: opacity > 0; opacity: bluetoothMenuOpen ? 1 : 0
+            
+            Behavior on height { NumberAnimation { duration: 400; easing.type: Easing.OutExpo } }
+            Behavior on anchors.topMargin { NumberAnimation { duration: 400; easing.type: Easing.OutExpo } }
+            Behavior on opacity { NumberAnimation { duration: 300 } }
+
+            ColumnLayout {
+                anchors.fill: parent; anchors.margins: 0; spacing: 0
+                
+                // Header
+                ColumnLayout {
+                    Layout.fillWidth: true; Layout.margins: 12; spacing: 8
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text { text: "BLUETOOTH DEVICES"; color: cDim; font.bold: true; font.pixelSize: 10; Layout.fillWidth: true }
+                        
+                        // Scan Button
+                        Item {
+                            Layout.preferredWidth: btScanRow.implicitWidth
+                            Layout.preferredHeight: 30
+                            RowLayout {
+                                id: btScanRow
+                                anchors.fill: parent
+                                spacing: 6
+                                Text {
+                                    text: "󰑐"
+                                    color: cAccent
+                                    font.pixelSize: 12
+                                    font.family: "Symbols Nerd Font"
+                                    transformOrigin: Item.Center
+                                    RotationAnimation on rotation {
+                                        running: BluetoothService.scanning
+                                        from: 0; to: 360; duration: 1000; loops: Animation.Infinite
+                                    }
+                                }
+                                Text {
+                                    text: BluetoothService.scanning ? "Scanning..." : "Scan"
+                                    color: cAccent
+                                    font.pixelSize: 10
+                                    font.bold: true
+                                }
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: BluetoothService.scan()
+                            }
+                        }
+                    }
+                }
+                
+                Rectangle { Layout.fillWidth: true; height: 1; color: Qt.rgba(1, 1, 1, 0.05) }
+
+                // Device List
+                ColumnLayout {
+                    Layout.fillWidth: true; Layout.leftMargin: 12; Layout.rightMargin: 12; Layout.bottomMargin: 12; spacing: 8
+                    
+                    ListView {
+                        id: btList; Layout.fillWidth: true; Layout.fillHeight: true; clip: true; spacing: 4
+                        model: BluetoothService.devices
+                        
+                        Text {
+                            anchors.centerIn: parent; text: "No devices found"; color: cDim; font.pixelSize: 12
+                            visible: btList.count === 0 && !BluetoothService.scanning
+                        }
+                        Text {
+                            anchors.centerIn: parent; text: "Scanning..."; color: cAccent; font.pixelSize: 12
+                            visible: btList.count === 0 && BluetoothService.scanning
+                        }
+
+                        delegate: Rectangle {
+                            width: btList.width; height: rowHeight; radius: 8
+                            color: hoverBt.hovered ? cSurface : "transparent"
+                            RowLayout {
+                                anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 12; spacing: 12
+                                Text { text: modelData.icon; color: modelData.connected ? cGreen : cAccent; font.pixelSize: 16; font.family: "Symbols Nerd Font" }
+                                ColumnLayout {
+                                    Layout.fillWidth: true; spacing: 2
+                                    Text { text: modelData.name; color: modelData.connected ? cGreen : cFg; font.pixelSize: 12; elide: Text.ElideRight; font.bold: modelData.connected }
+                                    Text { text: modelData.connected ? "Connected" : modelData.mac; color: modelData.connected ? cGreen : cDim; font.pixelSize: 9 }
+                                }
+                            }
+                            MouseArea {
+                                id: hoverBt; anchors.fill: parent
+                                onClicked: {
+                                    if (modelData.connected) BluetoothService.disconnect(modelData.mac)
+                                    else BluetoothService.connect(modelData.mac)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Rectangle { Layout.fillWidth: true; height: 1; color: Qt.rgba(1, 1, 1, 0.05) }
+
+                // Footer
+                ColumnLayout {
+                    Layout.fillWidth: true; Layout.margins: 12; spacing: 8
+                    
+                    RowLayout {
+                        Layout.fillWidth: true; height: 32
+                        Text { text: "Enable Bluetooth"; color: cFg; font.pixelSize: 12; Layout.fillWidth: true }
+                        Switch {
+                            checked: BluetoothService.powered
+                            onClicked: BluetoothService.togglePower()
+                            scale: 0.8
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true; height: 32; radius: 8; color: hoverBtMan.hovered ? cSurface : "transparent"
+                        RowLayout {
+                            anchors.fill: parent; anchors.leftMargin: 8; spacing: 10
+                            Text { text: "󰒓"; color: cAccent; font.pixelSize: 14; font.family: "Symbols Nerd Font" }
+                            Text { text: "Bluetooth Manager"; color: cFg; font.pixelSize: 12 }
+                        }
+                        MouseArea { id: hoverBtMan; anchors.fill: parent; onClicked: BluetoothService.openManager() }
                     }
                 }
             }

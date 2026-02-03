@@ -27,8 +27,18 @@ Singleton {
         binds = list
     }
 
-    function removeBinding(index) {
+    function removeBinding(id) {
         var list = binds.slice()
+        var index = -1
+        for (var i = 0; i < list.length; i++) {
+            if (list[i].id === id) {
+                index = i
+                break
+            }
+        }
+
+        if (index === -1) return
+
         if (list[index].isNew) {
             // If it's new and not saved yet, just remove it from array
             list.splice(index, 1)
@@ -39,8 +49,37 @@ Singleton {
         binds = list
     }
 
+    function restoreBinding(id) {
+        var list = binds.slice()
+        for (var i = 0; i < list.length; i++) {
+            if (list[i].id === id) {
+                list[i].deleted = false
+                break
+            }
+        }
+        binds = list
+    }
+
+    function updateBinding(id, property, value) {
+        // We modify the object in place. Since 'binds' is an array of objects,
+        // and we want to avoid triggering a full ListView reset (which happens if we re-assign binds),
+        // we just find the reference and update it.
+        var list = binds;
+        for (var i = 0; i < list.length; i++) {
+            if (list[i].id === id) {
+                list[i][property] = value;
+                return;
+            }
+        }
+    }
+
     function save(newBinds) {
         if (!configFile) return;
+        
+        console.log("Saving " + newBinds.length + " binds to " + configFile);
+        if (newBinds.length > 0) {
+             console.log("First bind to save: " + JSON.stringify(newBinds[0]));
+        }
 
         // Construct a shell command to update the file using sed
         // We backup the file first
@@ -72,33 +111,20 @@ Singleton {
             }
         }
         
-        // Remove trailing " && " and add success echo
-        cmd += "true";
+        // Reload Hyprland config and notify
+        cmd += "hyprctl reload && notify-send 'Keybinds Saved' 'Hyprland config reloaded'";
+
+        console.log("Saving keybinds with command: " + cmd);
 
         Quickshell.execDetached(["sh", "-c", cmd]);
-
-        // Reload Hyprland config after a short delay
-        reloadTimer.start()
     }
 
     function restore() {
         if (!configFile) return;
         
-        var cmd = "if [ -f \"" + configFile + ".bak\" ]; then cp \"" + configFile + ".bak\" \"" + configFile + "\"; fi";
+        var cmd = "if [ -f \"" + configFile + ".bak\" ]; then cp \"" + configFile + ".bak\" \"" + configFile + "\"; fi && hyprctl reload && notify-send 'Keybinds Restored' 'Backup restored'";
         
         Quickshell.execDetached(["sh", "-c", cmd]);
-        
-        // Reload Hyprland config after a short delay
-        reloadTimer.start()
-    }
-
-    Timer {
-        id: reloadTimer
-        interval: 1000
-        onTriggered: {
-            Quickshell.execDetached(["hyprctl", "reload"])
-            load() // Refresh UI
-        }
     }
 
     Process {

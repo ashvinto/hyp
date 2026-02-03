@@ -12,3 +12,4 @@ FullMediaPlayer FullMediaPlayer.qml
 SmallMediaPlayer SmallMediaPlayer.qml
 ClickableIcon ClickableIcon.qml
 singleton PowerProfileService PowerProfileService.qml
+singleton BluetoothService BluetoothService.qml

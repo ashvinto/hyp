@@ -1,0 +1,265 @@
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import QtQuick.Effects
+import QtQuick.Shapes
+import Quickshell
+import Quickshell.Wayland
+import "../Services"
+
+PanelWindow {
+    id: root
+
+    // Window Setup
+    anchors {
+        top: true
+        left: true
+        right: true
+        bottom: true
+    }
+    color: "transparent"
+
+    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+    WlrLayershell.namespace: "dashboard"
+
+    property bool visible_state: false
+    Component.onCompleted: visible_state = true
+
+    function close() {
+        visible_state = false
+        exitTimer.start()
+    }
+    Timer { id: exitTimer; interval: 300; onTriggered: Qt.quit() }
+
+    // --- Theming & Colors ---
+    readonly property color cBg: ThemeService.background
+    readonly property color cCard: ThemeService.surface
+    readonly property color cSurface: ThemeService.surface_variant
+    readonly property color cText: ThemeService.text
+    readonly property color cDim: ThemeService.text_dim
+    readonly property color cAccent: ThemeService.accent
+    readonly property color cRed: ThemeService.error
+    readonly property color cGreen: ThemeService.success
+    readonly property color cYellow: "#fab387"
+    readonly property color cBlue: "#89b4fa"
+    readonly property color cBorder: Qt.rgba(1, 1, 1, 0.08)
+
+    // --- Main UI ---
+    Rectangle {
+        id: mainContainer
+        anchors.fill: parent
+        color: "transparent"
+        opacity: visible_state ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+
+        // Close on Click Outside
+        MouseArea { anchors.fill: parent; onClicked: root.close() }
+        focus: true; Keys.onEscapePressed: root.close()
+
+        // Background Blur
+        MultiEffect {
+            anchors.fill: parent
+            source: backgroundRect
+            blurEnabled: true
+            blur: 0.8
+            brightness: 0.4
+        }
+        Rectangle { id: backgroundRect; anchors.fill: parent; color: Qt.rgba(0,0,0,0.5); visible: false }
+
+        // --- Content Wrapper ---
+        Item {
+            anchors.fill: parent
+            anchors.topMargin: 60
+
+            GridLayout {
+                anchors.top: parent.top
+                anchors.topMargin: 20
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: 1000
+                height: 550
+
+                columns: 6
+                rows: 2
+                columnSpacing: 20
+                rowSpacing: 20
+
+                // Pop-in Animation
+                transform: Scale {
+                    origin.x: 500; origin.y: 0
+                    xScale: visible_state ? 1 : 0.95
+                    yScale: visible_state ? 1 : 0.95
+                    Behavior on xScale { NumberAnimation { duration: 400; easing.type: Easing.OutBack } }
+                    Behavior on yScale { NumberAnimation { duration: 400; easing.type: Easing.OutBack } }
+                }
+
+                // [0,0] User Profile & Power
+                DashboardCard {
+                    Layout.columnSpan: 2
+                    Layout.preferredWidth: 320
+                    Layout.preferredHeight: 220 // Increased height
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 25
+                        spacing: 20 // Increased spacing
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 25 // Increased spacing
+                            
+                            Rectangle {
+                                width: 100; height: 100; radius: 50 // Increased size
+                                color: cSurface
+                                clip: true
+                                
+                                Image {
+                                    anchors.fill: parent
+                                    source: "../assets/profile.jpg"
+                                    fillMode: Image.PreserveAspectCrop
+                                    cache: false
+                                }
+                            }
+                            
+                            ColumnLayout {
+                                spacing: 4
+                                Text { text: "Welcome back,"; color: cDim; font.pixelSize: 12; font.bold: true }
+                                Text { text: SystemService.user || "User"; color: cText; font.pixelSize: 24; font.bold: true } // Increased font
+                                
+                                Rectangle {
+                                    Layout.topMargin: 4
+                                    width: uptimeText.implicitWidth + 16; height: 24
+                                    radius: 12; color: cSurface
+                                    Text { 
+                                        id: uptimeText
+                                        anchors.centerIn: parent
+                                        text: "UP: " + (SystemService.uptime || "0h 0m")
+                                        color: cAccent; font.pixelSize: 11; font.bold: true 
+                                    }
+                                }
+                            }
+                        }
+
+                        // Divider
+                        Rectangle { Layout.fillWidth: true; height: 1; color: cBorder }
+
+                        // Power Controls
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Layout.alignment: Qt.AlignHCenter
+                            spacing: 15
+                            
+                            PowerBtn { icon: "󰌾"; btnColor: cAccent; onClicked: QuickSettingsService.lock() }
+                            PowerBtn { icon: "󰤄"; btnColor: cYellow; onClicked: Quickshell.execDetached(["systemctl", "suspend"]) }
+                            PowerBtn { icon: "󰑓"; btnColor: cBlue; onClicked: QuickSettingsService.reboot() }
+                            PowerBtn { icon: "󰐥"; btnColor: cRed; onClicked: QuickSettingsService.shutdown() }
+                        }
+                    }
+                }
+
+                // [0,2] Weather
+                DashboardCard {
+                    Layout.columnSpan: 2
+                    Layout.preferredWidth: 320
+                    Layout.preferredHeight: 200
+
+                    RowLayout {
+                        anchors.centerIn: parent
+                        spacing: 25
+                        
+                        Text { 
+                            text: WeatherService.icon || "󰖐"
+                            color: cAccent; font.pixelSize: 54; font.family: "Symbols Nerd Font"
+                        }
+                        
+                        ColumnLayout {
+                            spacing: 4
+                            Text { text: WeatherService.temp || "0°C"; color: cText; font.pixelSize: 32; font.bold: true }
+                            Text { text: WeatherService.description || "Loading..."; color: cDim; font.pixelSize: 13; font.capitalization: Font.Capitalize }
+                            
+                            RowLayout {
+                                spacing: 10
+                                Text { text: " " + (WeatherService.humidity || 0) + "%"; color: cDim; font.pixelSize: 11; font.family: "Symbols Nerd Font" }
+                                Text { text: " " + (WeatherService.windSpeed || 0) + "km/h"; color: cDim; font.pixelSize: 11; font.family: "Symbols Nerd Font" }
+                            }
+                        }
+                    }
+                }
+
+                // [0,4] Media Player (Tall Card)
+                DashboardCard {
+                    Layout.columnSpan: 2
+                    Layout.rowSpan: 2
+                    Layout.preferredWidth: 320
+                    Layout.fillHeight: true
+                    clip: true
+
+                    FullMediaPlayer {
+                        anchors.centerIn: parent
+                        width: parent.width
+                    }
+                }
+
+                // [1,0] Clock & Date
+                DashboardCard {
+                    Layout.columnSpan: 2
+                    Layout.preferredWidth: 320
+                    Layout.preferredHeight: 200
+
+                    property var dateObj: new Date()
+                    Timer { interval: 1000; running: true; repeat: true; onTriggered: parent.dateObj = new Date() }
+
+                    ColumnLayout {
+                        anchors.centerIn: parent; spacing: 0
+
+                        Text {
+                            Layout.alignment: Qt.AlignHCenter
+                            text: Qt.formatTime(parent.parent.dateObj, "hh:mm")
+                            color: cText; font.bold: true; font.pixelSize: 64; font.family: "JetBrains Mono"
+                        }
+
+                        Text {
+                            Layout.alignment: Qt.AlignHCenter
+                            text: Qt.formatDate(parent.parent.dateObj, "dddd, d MMMM")
+                            color: cAccent; font.bold: true; font.pixelSize: 16; font.capitalization: Font.MixedCase
+                        }
+                    }
+                }
+
+                // [1,2] System Resources
+                DashboardCard {
+                    Layout.columnSpan: 2
+                    Layout.preferredWidth: 320
+                    Layout.preferredHeight: 200
+
+                    RowLayout {
+                        anchors.centerIn: parent
+                        spacing: 25
+
+                        CircularProgress { value: ResourceService.cpu; label: "CPU"; color: cRed }
+                        CircularProgress { value: ResourceService.ram; label: "RAM"; color: cYellow }
+                        CircularProgress { value: ResourceService.gpu; label: "GPU"; color: cBlue }
+                    }
+                }
+            }
+        }
+    }
+    
+    component PowerBtn: Rectangle {
+        property string icon: ""
+        property color btnColor: cText
+        signal clicked()
+        
+        width: 45; height: 45; radius: 22.5
+        color: cSurface
+        border.color: hoverHandler.hovered ? btnColor : "transparent"
+        border.width: 1
+        
+        Text { anchors.centerIn: parent; text: icon; color: parent.btnColor; font.pixelSize: 20; font.family: "Symbols Nerd Font" }
+        HoverHandler { id: hoverHandler }
+        MouseArea { anchors.fill: parent; onClicked: parent.clicked() }
+        
+        Behavior on scale { NumberAnimation { duration: 100 } }
+        scale: hoverHandler.hovered ? 1.1 : 1.0
+    }
+}

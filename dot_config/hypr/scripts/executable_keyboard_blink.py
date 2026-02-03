@@ -31,8 +31,8 @@ def get_random_color():
 def set_color(color):
     try:
         # Fire and forget to avoid blocking the input loop
-        subprocess.Popen(["asusctl", "aura", "static", "-c", color], 
-                       stdout=subprocess.DEVNULL, 
+        subprocess.Popen(["asusctl", "aura", "effect", "static", "-c", color],
+                       stdout=subprocess.DEVNULL,
                        stderr=subprocess.DEVNULL)
     except Exception as e:
         print(f"Error setting color: {e}")

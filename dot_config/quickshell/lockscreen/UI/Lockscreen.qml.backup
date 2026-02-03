@@ -6,7 +6,6 @@ import QtQuick.Effects
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
-import Quickshell.Services.Pam
 import "../Services"
 
 PanelWindow {
@@ -25,13 +24,6 @@ PanelWindow {
     readonly property color cText: ThemeService.text
     readonly property color cAccent: ThemeService.accent
     readonly property color cDim: ThemeService.text_dim
-
-    // Lock context for authentication
-    LockContext {
-        id: lockContext
-        onUnlocked: Qt.quit()
-        onFailed: passwordInput.text = ''  // Clear password on failure
-    }
 
     property var currentTime: new Date()
     Timer { interval: 1000; running: true; repeat: true; onTriggered: root.currentTime = new Date() }
@@ -138,15 +130,8 @@ PanelWindow {
                         font.pixelSize: 18
                         background: null
                         focus: true
-                        Component.onCompleted: focusTimer.start()
-                        
-                        onAccepted: {
-                            // Use the LockContext service for authentication
-                            lockContext.currentText = passwordInput.text;
-                            lockContext.tryUnlock();
-                        } 
+                        onAccepted: Qt.quit() 
                     }
-                    Timer { id: focusTimer; interval: 100; onTriggered: passwordInput.forceActiveFocus() }
                 }
             }
 

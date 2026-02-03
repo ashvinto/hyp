@@ -172,7 +172,7 @@ PanelWindow {
                             background: null
                             Layout.preferredWidth: 120
                             enabled: !modelData.deleted
-                            onEditingFinished: modelData.mods = text
+                            onTextEdited: Services.KeybindService.updateBinding(modelData.id, "mods", text)
                             placeholderText: "Mods..."
                             placeholderTextColor: Qt.rgba(cAccent.r, cAccent.g, cAccent.b, 0.4)
                         }
@@ -185,7 +185,7 @@ PanelWindow {
                             background: null
                             Layout.preferredWidth: 80
                             enabled: !modelData.deleted
-                            onEditingFinished: modelData.key = text
+                            onTextEdited: Services.KeybindService.updateBinding(modelData.id, "key", text)
                             placeholderText: "Key..."
                             placeholderTextColor: Qt.rgba(cText.r, cText.g, cText.b, 0.4)
                         }
@@ -197,7 +197,7 @@ PanelWindow {
                             background: null
                             Layout.preferredWidth: 150
                             enabled: !modelData.deleted
-                            onEditingFinished: modelData.dispatcher = text
+                            onTextEdited: Services.KeybindService.updateBinding(modelData.id, "dispatcher", text)
                             placeholderText: "Action..."
                             placeholderTextColor: Qt.rgba(cDim.r, cDim.g, cDim.b, 0.4)
                         }
@@ -209,7 +209,7 @@ PanelWindow {
                             background: null
                             Layout.fillWidth: true
                             enabled: !modelData.deleted
-                            onEditingFinished: modelData.args = text
+                            onTextEdited: Services.KeybindService.updateBinding(modelData.id, "args", text)
                             placeholderText: "Arguments..."
                             placeholderTextColor: Qt.rgba(cText.r, cText.g, cText.b, 0.4)
                         }
@@ -235,11 +235,9 @@ PanelWindow {
                             }
                             onClicked: {
                                 if (modelData.deleted) {
-                                    modelData.deleted = false
-                                    // Trigger a UI refresh if needed by re-assigning binds
-                                    Services.KeybindService.binds = Services.KeybindService.binds
+                                    Services.KeybindService.restoreBinding(modelData.id)
                                 } else {
-                                    Services.KeybindService.removeBinding(index)
+                                    Services.KeybindService.removeBinding(modelData.id)
                                 }
                             }
                         }

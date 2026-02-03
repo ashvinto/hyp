@@ -95,32 +95,26 @@ PanelWindow {
                         anchors.fill: parent; anchors.margins: 25
                         spacing: 15
 
-                        // Avatar - Using the same approach as shell dashboard
-                        Item {
+                        // Avatar
+                        Rectangle {
                             Layout.alignment: Qt.AlignHCenter
-                            width: 110; height: 110
-
-                            // Circular clipping rectangle with border
-                            Rectangle {
-                                id: profileClipper
-                                anchors.centerIn: parent
-                                width: 110; height: 110; radius: 55
-                                color: cSurface  // Background color
-                                border.width: 2; border.color: cAccent
-                                clip: true  // This ensures content outside the rectangle is not shown
-                            }
-
-                            // Profile image
-                            Image {
+                            width: 110; height: 110; radius: 55
+                            color: cSurface; border.width: 2; border.color: cAccent
+                            clip: true
+                            Image { 
                                 id: profileImg
-                                anchors.centerIn: profileClipper
-                                width: profileClipper.width; height: profileClipper.height
-                                source: "file:///home/zoro/.face"
+                                anchors.fill: parent; anchors.margins: 2; 
+                                source: "../assets/profile.png"
                                 fillMode: Image.PreserveAspectCrop
-                                smooth: true
-                                // This image will be clipped by the parent rectangle
+                                
+                                layer.enabled: true
+                                layer.effect: MultiEffect { 
+                                    maskEnabled: true
+                                    maskSource: profileImgParent
+                                }
                             }
-
+                            Rectangle { id: profileImgParent; anchors.fill: parent; radius: 55; visible: false }
+                            
                             MouseArea {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor

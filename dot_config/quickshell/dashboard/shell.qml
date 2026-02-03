@@ -1,9 +1,6 @@
-import QtQuick
 import Quickshell
-import "./UI"
-import "./Services"
+import "UI"
 
 ShellRoot {
-    id: root
-    Dashboard { id: dashboard }
+    Dashboard {}
 }

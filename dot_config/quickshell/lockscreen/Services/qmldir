@@ -10,3 +10,4 @@ MediaInfo MediaInfo.qml
 FullMediaPlayer FullMediaPlayer.qml
 SmallMediaPlayer SmallMediaPlayer.qml
 ClickableIcon ClickableIcon.qml
+LockContext LockContext.qml

@@ -20,7 +20,7 @@ PanelWindow {
     property bool wifiMenuOpen: false
     property bool bluetoothMenuOpen: false
     property bool powerMenuOpen: false
-    
+
     // Geometric constants
     readonly property int menuWidth: 300
     readonly property int rowHeight: 40
@@ -48,12 +48,12 @@ PanelWindow {
         h += 100 // Footer
         return h + 40
     }
-    
+
     property real powerMenuHeight: 280
 
     implicitHeight: (wifiMenuOpen || bluetoothMenuOpen || powerMenuOpen) ? 850 : (hoverHandler.hovered ? 42 : 1)
     exclusiveZone: (wifiMenuOpen || bluetoothMenuOpen || powerMenuOpen || hoverHandler.hovered) ? 42 : 0
-    
+
     Behavior on implicitHeight { NumberAnimation { duration: 400; easing.type: Easing.OutExpo } }
     color: "transparent"
 
@@ -68,13 +68,14 @@ PanelWindow {
         }
     }
 
-    readonly property color cBg: "#1e1e2e"
-    readonly property color cFg: "#cdd6f4"
-    readonly property color cAccent: "#cba6f7"
-    readonly property color cSurface: "#313244"
-    readonly property color cRed: "#f38ba8"
-    readonly property color cGreen: "#a6e3a1"
-    readonly property color cDim: Qt.rgba(0.8, 0.8, 0.9, 0.4)
+    // --- Dynamic Colors from Common ThemeService ---
+    readonly property color cBg: ThemeService.backgroundDark
+    readonly property color cFg: ThemeService.text
+    readonly property color cAccent: ThemeService.accent
+    readonly property color cSurface: ThemeService.surface_variant
+    readonly property color cRed: ThemeService.error
+    readonly property color cGreen: ThemeService.success
+    readonly property color cDim: ThemeService.text_dim
 
     Item {
         anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right
@@ -95,7 +96,7 @@ PanelWindow {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: parent.top; anchors.topMargin: 5
             radius: 16; color: cBg; border.color: cSurface; border.width: 1
-            z: 10 
+            z: 10
             Text { anchors.centerIn: parent; text: "󰕮"; color: cAccent; font.pixelSize: 20; font.family: "Symbols Nerd Font" }
             MouseArea { anchors.fill: parent; onClicked: Quickshell.execDetached(["quickshell", "-c", "dashboard"])
             }
@@ -139,7 +140,7 @@ PanelWindow {
                 }
             }
 
-            Item { Layout.fillWidth: true } 
+            Item { Layout.fillWidth: true }
 
             // --- RIGHT ---
             Rectangle {
@@ -175,6 +176,9 @@ PanelWindow {
                     Text { text: "󰅍"; color: cAccent; font.pixelSize: 14; font.family: "Symbols Nerd Font"; MouseArea { anchors.fill: parent; onClicked: Quickshell.execDetached(["qs", "-c", "clipboard"])
                     } }
                     Text { text: "󰞅"; color: cAccent; font.pixelSize: 14; font.family: "Symbols Nerd Font"; MouseArea { anchors.fill: parent; onClicked: Quickshell.execDetached(["qs", "-c", "emoji-picker"])
+                    } }
+
+                    Text { text: "󰗡"; color: cAccent; font.pixelSize: 14; font.family: "Symbols Nerd Font"; MouseArea { anchors.fill: parent; onClicked: Quickshell.execDetached(["qs", "-c", "todo"])
                     } }
 
                     Rectangle {
@@ -215,9 +219,9 @@ PanelWindow {
 
                     RowLayout {
                         spacing: 4
-                        Text { 
+                        Text {
                             text: QuickSettingsService.isCharging ? "" : ""
-                            color: QuickSettingsService.isCharging ? cGreen : cAccent; font.pixelSize: 14 
+                            color: QuickSettingsService.isCharging ? cGreen : cAccent; font.pixelSize: 14
                         }
                         Text { text: QuickSettingsService.batteryLevel + "%"; color: cFg; font.bold: true; font.pixelSize: 10 }
                     }
@@ -270,17 +274,17 @@ PanelWindow {
             anchors.top: parent.top; anchors.topMargin: wifiMenuOpen ? 52 : 40
             anchors.right: parent.right; anchors.rightMargin: 15
             width: menuWidth; height: wifiMenuOpen ? wifiMenuHeight : 0
-            color: Qt.rgba(0.12, 0.12, 0.18, 0.98)
+            color: Qt.rgba(cBg.r, cBg.g, cBg.b, 0.98)
             radius: 20; border.color: Qt.rgba(1, 1, 1, 0.1); border.width: 1
             visible: opacity > 0; opacity: wifiMenuOpen ? 1 : 0
-            
+
             Behavior on height { NumberAnimation { duration: 400; easing.type: Easing.OutExpo } }
             Behavior on anchors.topMargin { NumberAnimation { duration: 400; easing.type: Easing.OutExpo } }
             Behavior on opacity { NumberAnimation { duration: 300 } }
 
             ColumnLayout {
                 anchors.fill: parent; anchors.margins: 0; spacing: 0
-                
+
                 // 1. Ethernet Section
                 ColumnLayout {
                     Layout.fillWidth: true; Layout.margins: 12; spacing: 8
@@ -300,7 +304,7 @@ PanelWindow {
                     RowLayout {
                         Layout.fillWidth: true
                         Text { text: "WI-FI NETWORKS"; color: cDim; font.bold: true; font.pixelSize: 10; Layout.fillWidth: true }
-                        
+
                         // Scan Button
                         Item {
                             Layout.preferredWidth: scanRow.implicitWidth
@@ -334,7 +338,7 @@ PanelWindow {
                             }
                         }
                     }
-                    
+
                     // Show currently connected network
                     Repeater {
                         model: NetworkService.networks.filter(function(n) { return n.active || n.ssid === NetworkService.activeWifiSsid })
@@ -362,11 +366,11 @@ PanelWindow {
                 // 3. Available Networks List
                 ColumnLayout {
                     Layout.fillWidth: true; Layout.leftMargin: 12; Layout.rightMargin: 12; Layout.bottomMargin: 12; spacing: 8
-                    
+
                     ListView {
                         id: wifiList; Layout.fillWidth: true; Layout.fillHeight: true; clip: true; spacing: 4
                         model: NetworkService.networks.filter(function(n) { return !n.active && n.ssid !== NetworkService.activeWifiSsid })
-                        
+
                         Text {
                             anchors.centerIn: parent; text: "No networks found"; color: cDim; font.pixelSize: 12
                             visible: wifiList.count === 0 && !NetworkService.scanning
@@ -381,13 +385,13 @@ PanelWindow {
                             color: hoverAvail.hovered ? cSurface : "transparent"
                             RowLayout {
                                 anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 12; spacing: 12
-                                Item { width: 16; height: 16 } 
+                                Item { width: 16; height: 16 }
                                 Text { text: modelData.ssid; color: cFg; font.pixelSize: 12; elide: Text.ElideRight; Layout.fillWidth: true }
                                 RowLayout {
                                     spacing: 6
-                                    Text { 
+                                    Text {
                                         visible: modelData.security !== "" && modelData.security !== "--"
-                                        text: "󰌾"; color: cDim; font.pixelSize: 12; font.family: "Symbols Nerd Font" 
+                                        text: "󰌾"; color: cDim; font.pixelSize: 12; font.family: "Symbols Nerd Font"
                                     }
                                     Text {
                                         text: {
@@ -405,15 +409,15 @@ PanelWindow {
                                     var isEnterprise = modelData.security.includes("802.1X") || modelData.security.includes("EAP")
                                     var isOpen = modelData.security === "" || modelData.security === "--"
                                     var method = isEnterprise ? "enterprise" : (isOpen ? "open" : "wpa")
-                                    
+
                                     Quickshell.execDetached([
-                                        "sh", "-c", 
-                                        "QS_WIFI_SSID='" + modelData.ssid.replace(/'/g, "'\\''") + "' " + 
-                                        "QS_WIFI_SECURITY='" + modelData.security + "' " + 
-                                        "QS_WIFI_METHOD='" + method + "' " + 
-                                        "QS_WIFI_SIGNAL='" + modelData.signal + "' " + 
+                                        "sh", "-c",
+                                        "QS_WIFI_SSID='" + modelData.ssid.replace(/'/g, "'\\''") + "' " +
+                                        "QS_WIFI_SECURITY='" + modelData.security + "' " +
+                                        "QS_WIFI_METHOD='" + method + "' " +
+                                        "QS_WIFI_SIGNAL='" + modelData.signal + "' " +
                                         "quickshell -c /home/zoro/.config/quickshell/network-dialog"
-                                    ])                                    
+                                    ])
                                     wifiMenuOpen = false
                                 }
                             }
@@ -426,7 +430,7 @@ PanelWindow {
                 // 4. Footer Block
                 ColumnLayout {
                     Layout.fillWidth: true; Layout.margins: 12; spacing: 8
-                    
+
                     RowLayout {
                         Layout.fillWidth: true; height: 32
                         Text { text: "Enable Networking"; color: cFg; font.pixelSize: 12; Layout.fillWidth: true }
@@ -457,11 +461,11 @@ PanelWindow {
                             id: hoverHidden; anchors.fill: parent
                             onClicked: {
                                 Quickshell.execDetached([
-                                    "sh", "-c", 
-                                    "QS_WIFI_SSID='' " + 
-                                    "QS_WIFI_SECURITY='WPA2' " + 
-                                    "QS_WIFI_METHOD='enterprise' " + 
-                                    "QS_WIFI_SIGNAL='100' " + 
+                                    "sh", "-c",
+                                    "QS_WIFI_SSID='' " +
+                                    "QS_WIFI_SECURITY='WPA2' " +
+                                    "QS_WIFI_METHOD='enterprise' " +
+                                    "QS_WIFI_SIGNAL='100' " +
                                     "quickshell -c /home/zoro/.config/quickshell/network-dialog"
                                 ])
                                 wifiMenuOpen = false
@@ -488,24 +492,24 @@ PanelWindow {
             anchors.top: parent.top; anchors.topMargin: bluetoothMenuOpen ? 52 : 40
             anchors.right: parent.right; anchors.rightMargin: 15
             width: menuWidth; height: bluetoothMenuOpen ? bluetoothMenuHeight : 0
-            color: Qt.rgba(0.12, 0.12, 0.18, 0.98)
+            color: Qt.rgba(cBg.r, cBg.g, cBg.b, 0.98)
             radius: 20; border.color: Qt.rgba(1, 1, 1, 0.1); border.width: 1
             visible: opacity > 0; opacity: bluetoothMenuOpen ? 1 : 0
-            
+
             Behavior on height { NumberAnimation { duration: 400; easing.type: Easing.OutExpo } }
             Behavior on anchors.topMargin { NumberAnimation { duration: 400; easing.type: Easing.OutExpo } }
             Behavior on opacity { NumberAnimation { duration: 300 } }
 
             ColumnLayout {
                 anchors.fill: parent; anchors.margins: 0; spacing: 0
-                
+
                 // Header
                 ColumnLayout {
                     Layout.fillWidth: true; Layout.margins: 12; spacing: 8
                     RowLayout {
                         Layout.fillWidth: true
                         Text { text: "BLUETOOTH DEVICES"; color: cDim; font.bold: true; font.pixelSize: 10; Layout.fillWidth: true }
-                        
+
                         // Scan Button
                         Item {
                             Layout.preferredWidth: btScanRow.implicitWidth
@@ -539,17 +543,17 @@ PanelWindow {
                         }
                     }
                 }
-                
+
                 Rectangle { Layout.fillWidth: true; height: 1; color: Qt.rgba(1, 1, 1, 0.05) }
 
                 // Device List
                 ColumnLayout {
                     Layout.fillWidth: true; Layout.leftMargin: 12; Layout.rightMargin: 12; Layout.bottomMargin: 12; spacing: 8
-                    
+
                     ListView {
                         id: btList; Layout.fillWidth: true; Layout.fillHeight: true; clip: true; spacing: 4
                         model: BluetoothService.devices
-                        
+
                         Text {
                             anchors.centerIn: parent; text: "No devices found"; color: cDim; font.pixelSize: 12
                             visible: btList.count === 0 && !BluetoothService.scanning
@@ -587,7 +591,7 @@ PanelWindow {
                 // Footer
                 ColumnLayout {
                     Layout.fillWidth: true; Layout.margins: 12; spacing: 8
-                    
+
                     RowLayout {
                         Layout.fillWidth: true; height: 32
                         Text { text: "Enable Bluetooth"; color: cFg; font.pixelSize: 12; Layout.fillWidth: true }
@@ -617,10 +621,10 @@ PanelWindow {
             anchors.top: parent.top; anchors.topMargin: 60
             anchors.right: parent.right; anchors.rightMargin: 15
             width: 280; height: powerMenuOpen ? powerMenuHeight : 0
-            color: Qt.rgba(0.12, 0.12, 0.18, 0.95)
+            color: Qt.rgba(cBg.r, cBg.g, cBg.b, 0.95)
             radius: 20; border.color: Qt.rgba(1, 1, 1, 0.1); border.width: 1
             visible: opacity > 0; opacity: powerMenuOpen ? 1 : 0
-            
+
             Behavior on height { NumberAnimation { duration: 400; easing.type: Easing.OutExpo } }
             Behavior on anchors.topMargin { NumberAnimation { duration: 400; easing.type: Easing.OutExpo } }
             Behavior on opacity { NumberAnimation { duration: 300 } }

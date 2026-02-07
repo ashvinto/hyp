@@ -1,36 +1,21 @@
 #!/bin/bash
-
-# Configuration
 TMP_FILE="/tmp/qs_screenshot_edit.png"
 
-# Function to run swappy
-open_swappy() {
-    swappy -f "$TMP_FILE"
+open_satty() {
+    wl-copy < "$TMP_FILE"
+    satty --filename "$TMP_FILE" --early-exit --copy-command "wl-copy"
 }
 
-# Handle Arguments
 case "$1" in
-    "area")
-        grim -g "$(slurp)" "$TMP_FILE" && open_swappy
-        ;;
-    "full")
-        grim "$TMP_FILE" && open_swappy
-        ;;
-    "window")
-        grim -g "$(slurp)" "$TMP_FILE" && open_swappy
-        ;;
+    "area") grim -g "$(slurp)" "$TMP_FILE" && open_satty ;;
+    "full") grim "$TMP_FILE" && open_satty ;;
+    "window") grim -g "$(slurp)" "$TMP_FILE" && open_satty ;;
     "freeze")
-        # For freeze, we still use Quickshell for the initial freeze/crop UI, 
-        # but then pass to swappy.
         grim /tmp/qs_freeze.png
         QS_SCREENSHOT_MODE=overlay qs -c screenshot & disown
         ;;
     *)
-        # No arg: Open Panel
-        if pgrep -f "qs -c screenshot" > /dev/null; then
-            pkill -f "qs -c screenshot"
-        else
-            qs -c screenshot & disown
-        fi
+        if pgrep -f "qs -c screenshot" > /dev/null; then pkill -f "qs -c screenshot"
+        else qs -c screenshot & disown; fi
         ;;
 esac

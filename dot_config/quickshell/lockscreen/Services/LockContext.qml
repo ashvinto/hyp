@@ -20,6 +20,7 @@ Scope {
 
 	function tryUnlock() {
 		if (currentText === "") return;
+		if (unlockInProgress) return;
 
 		root.unlockInProgress = true;
 		pam.start();
@@ -32,22 +33,26 @@ Scope {
 		// might not be what your interface expects, and break in some way.
 		// This particular example only supports passwords.
 		configDirectory: "../pam"
-		config: "password.conf"
+		config: "quickshell"
 
 		// pam_unix will ask for a response for the password prompt
 		onPamMessage: {
+			console.log("[LockContext] PAM Message: " + message + ", Required: " + responseRequired);
 			if (this.responseRequired) {
+				console.log("[LockContext] Responding with password length: " + root.currentText.length);
 				this.respond(root.currentText);
 			}
 		}
 
 		// pam_unix won't send any important messages so all we need is the completion status.
 		onCompleted: result => {
+			console.log("[LockContext] PAM Completed with result: " + result);
 			if (result == PamResult.Success) {
 				root.unlocked();
 			} else {
 				root.currentText = "";
 				root.showFailure = true;
+				root.failed(); // Signal the UI to clear the field
 			}
 
 			root.unlockInProgress = false;

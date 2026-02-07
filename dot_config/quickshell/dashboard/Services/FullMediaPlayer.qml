@@ -40,7 +40,7 @@ Rectangle {
     }
 
     onPlayerChanged: forceSync()
-    Timer { interval: 1000; running: true; repeat: true; onTriggered: forceSync() }
+    Timer { interval: 500; running: true; repeat: true; onTriggered: forceSync() }
 
     ColumnLayout {
         id: mainCol

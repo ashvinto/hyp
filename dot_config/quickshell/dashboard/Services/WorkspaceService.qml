@@ -8,7 +8,7 @@ Singleton {
     property var workspaces: []
     property int activeId: 1
 
-    function update() {
+    function refreshWorkspaces() {
         updateProcess.running = true
     }
 
@@ -33,6 +33,6 @@ Singleton {
 
     function goTo(id) {
         Quickshell.execDetached(["hyprctl", "dispatch", "workspace", id.toString()])
-        update()
+        refreshWorkspaces()
     }
 }

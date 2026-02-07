@@ -171,6 +171,19 @@ PanelWindow {
                             color: "transparent"
                             radius: 12
                             
+                            HoverHandler { id: hoverHandler }
+
+                            MouseArea {
+                                id: mouseArea
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onEntered: listView.currentIndex = index
+                                onClicked: {
+                                    ClipboardService.select(modelData.full)
+                                    close()
+                                }
+                            }
+
                             RowLayout {
                                 anchors.fill: parent
                                 anchors.margins: 15; spacing: 15
@@ -190,15 +203,15 @@ PanelWindow {
                                     elide: Text.ElideRight
                                     Layout.fillWidth: true
                                 }
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                onEntered: listView.currentIndex = index
-                                onClicked: {
-                                    ClipboardService.select(modelData.full)
-                                    close()
+                                
+                                IconButton {
+                                    icon: "󰆴" // Trash icon
+                                    visible: hoverHandler.hovered
+                                    onClicked: {
+                                        console.log("UI: Deleting index", index)
+                                        ClipboardService.deleteItem(modelData.full, index)
+                                        // No close() call here
+                                    }
                                 }
                             }
                         }
@@ -251,9 +264,17 @@ PanelWindow {
 
     component IconButton: Rectangle {
         property string icon: ""
-        signal clicked()
-        width: 32; height: 32; radius: 16; color: cSurface
+        signal clicked(var mouse)
+        width: 32; height: 32; radius: 16; color: mouseArea.containsMouse ? Qt.rgba(cAccent.r, cAccent.g, cAccent.b, 0.2) : cSurface
         Text { anchors.centerIn: parent; text: icon; color: cText; font.pixelSize: 14; font.family: "Symbols Nerd Font" }
-        MouseArea { anchors.fill: parent; hoverEnabled: true; onClicked: parent.clicked() }
+        MouseArea { 
+            id: mouseArea
+            anchors.fill: parent; 
+            hoverEnabled: true; 
+            onClicked: (mouse) => {
+                parent.clicked(mouse)
+                mouse.accepted = true
+            }
+        }
     }
 }

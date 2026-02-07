@@ -29,7 +29,10 @@ PanelWindow {
     // Lock context for authentication
     LockContext {
         id: lockContext
-        onUnlocked: Qt.quit()
+        onUnlocked: {
+            console.log("[Lockscreen] Unlocked signal received, quitting...")
+            Qt.quit()
+        }
         onFailed: passwordInput.text = ''  // Clear password on failure
     }
 
@@ -219,9 +222,58 @@ PanelWindow {
                             MiniGauge { label: "RAM"; value: ResourceService.ram; color: "#fab387" }
                             MiniGauge { label: "GPU"; value: ResourceService.gpu; color: "#89b4fa" }
                         }
+                        
+                        // Spacer
+                        Item { Layout.fillHeight: true }
+
+                        // Quick Settings
+                        RowLayout {
+                            Layout.alignment: Qt.AlignHCenter
+                            spacing: 20
+                            
+                            // Night Light
+                            ClickableIcon {
+                                iconString: "󰖔" // Weather/Night icon
+                                iconColor: "#f9e2af"
+                                fontSize: 22
+                                clickAction: () => {
+                                    processService.run(["/home/zoro/.config/hypr/scripts/night_light.sh"])
+                                }
+                            }
+                            
+                            // Airplane Mode
+                            ClickableIcon {
+                                iconString: "󰀝" // Airplane icon
+                                iconColor: "#89dceb"
+                                fontSize: 22
+                                clickAction: () => {
+                                    processService.run(["/home/zoro/.config/hypr/scripts/AirplaneMode.sh"])
+                                }
+                            }
+
+                            // DND / Mute
+                             ClickableIcon {
+                                iconString: "󰂚" // Bell icon
+                                iconColor: "#f38ba8"
+                                fontSize: 22
+                                clickAction: () => {
+                                    processService.run(["dunstctl", "set-paused", "toggle"])
+                                }
+                            }
+                        }
                     }
                 }
             }
+        }
+    }
+
+    // Helper for running processes since Lockscreen might not have global processService
+    QtObject {
+        id: processService
+        function run(cmd) {
+            var proc = Qt.createQmlObject('import Quickshell.Io; Process {}', root);
+            proc.command = cmd;
+            proc.running = true;
         }
     }
 

@@ -36,11 +36,11 @@ Singleton {
     function processCrop(x, y, w, h) {
         var geom = w + "x" + h + "+" + x + "+" + y
         var filename = "/tmp/qs_screenshot_edit.png"
-        var cmd = "magick /tmp/qs_freeze.png -crop " + geom + " " + filename + " && swappy -f " + filename
+        var cmd = "magick /tmp/qs_freeze.png -crop " + geom + " " + filename + " && wl-copy < " + filename + " && satty --filename " + filename + " --early-exit --copy-command 'wl-copy'"
         
         var proc = Qt.createQmlObject('import Quickshell.Io; Process { command: ["sh", "-c", "' + cmd + '"] }', root, "crop_proc")
         proc.running = true
-        // Close Quickshell immediately as swappy takes over
+        // Close Quickshell immediately as satty takes over
         Qt.quit()
     }
 
@@ -52,11 +52,11 @@ Singleton {
         if (mode === "fullscreen") cmd += "grim " + filename
         else if (mode === "region" || mode === "window") cmd += "grim -g \"$(slurp)\" " + filename
 
-        cmd += " && swappy -f " + filename
+        cmd += " && wl-copy < " + filename + " && satty --filename " + filename + " --early-exit --copy-command 'wl-copy'"
 
         var proc = Qt.createQmlObject('import Quickshell.Io; Process { command: ["sh", "-c", "' + cmd + '"] }', root, "capture_proc")
         proc.running = true
-        // Close Quickshell immediately as swappy takes over
+        // Close Quickshell immediately
         Qt.quit()
     }
 }

@@ -1,3 +1,2 @@
-module Common.Services
-singleton AppService 1.0 AppService.qml
-singleton ThemeService 1.0 ThemeService.qml
+singleton ThemeService ThemeService.qml
+singleton ConfigService ConfigService.qml

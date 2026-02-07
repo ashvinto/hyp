@@ -9,11 +9,11 @@ $mainMod = SUPER # Sets "Windows" key as main modifier
 # bind = $mainMod SHIFT, RETURN, exec, [float; size 800 550] $terminal 
 bind = $mainMod, Q, killactive, 
 bind = $mainMod, Delete, exec, hyprctl dispatch exit 0 # exit Hyprland
-bind = $mainMod, Space, togglefloating
+bind = $mainMod, Space, togglefloating, 
 bind = $mainMod, P, pseudo, # dwindle
 bind = $mainMod, J, togglesplit, # dwindle
 bind = $mainMod SHIFT, F, fullscreen, 
-bind = $mainMod SHIFT, W, exec, qs -c wallpaper-selector 
+bind = $mainMod SHIFT, W, exec, qs -c wallpaper-selector
 bind = $mainMod, C, exec, hyprpicker -a # picker
 bind = $mainMod, Print, exec, ~/.config/hypr/scripts/screenshot.sh # UI
 bind = , Print, exec, ~/.config/hypr/scripts/screenshot.sh full # Direct Full
@@ -21,13 +21,15 @@ bind = $mainMod SHIFT, P, exec, ~/.config/hypr/scripts/screenshot.sh area # Dire
 bind = $mainMod ALT, Print, exec, ~/.config/hypr/scripts/screenshot.sh window # Direct Window
 bind = $mainMod SHIFT, Print, exec, ~/.config/hypr/scripts/screenshot.sh freeze # Freeze Mode
 bind = $mainMod, V, exec, ~/.config/hypr/scripts/clipboard.sh #clipboard
+bind = $mainMod, N, exec, ~/.config/hypr/scripts/night_light.sh # Toggle Night Light
+bind = $mainMod, Z, exec, ~/.config/hypr/scripts/zen_mode.sh # Toggle Zen Mode
 
 
 # function keys
-bind = ,F1, exec, $terminal # terminal 
-bind = , F2, exec, $fileManager # filemanager
-bind = , F3, exec, $menu # launcher 
-bind =, F4, exec, ~/.config/hypr/scripts/emoji-picker.sh # emoji
+bind = , F1, exec, $terminal # terminal
+bind = $mainMod, F2, exec, $fileManager # filemanager
+bind = , F3, exec, $menu # launcher
+bind = , F4, exec, ~/.config/hypr/scripts/emoji-picker.sh # emoji
 # bind = ,XF86ScreenSaver, exec, ~/.config/hypr/scripts/lock.sh # lock
 bind = , F10, exec, ~/.config/hypr/scripts/focused_player_control.sh previous
 bind = , F11, exec, ~/.config/hypr/scripts/focused_player_control.sh play-pause
@@ -78,14 +80,16 @@ bind = $mainMod SHIFT, 0, movetoworkspace, 10
 
 # apps
 bind = Control, 0, exec, firefox
-bind = Control, 1, exec, brave --profile-directory="Default" #temp
-bind = Control, 2, exec, brave --profile-directory="Profile 3" # locus
-bind = Control, 3, exec, brave --profile-directory="Profile 1" # leetcode
-bind = Control, 4, exec, brave --profile-directory="Profile 2" # college
-# bind = Control, 5, exec, /home/zoro/Applications/Windsurf/bin/windsurf --enable-features=UseOzonePlatform --ozone-platform=wayland /home/zoro/.config/hypr/keybinding.conf
+bind = Control, 1, exec, vivaldi-stable --profile-directory="Profile 5" #temp
+bind = Control, 4, exec, vivaldi-stable --profile-directory="Profile 1" # locus
+bind = Control, 3, exec, vivaldi-stable --profile-directory="Profile 2" # leetcode
+bind = Control, 2, exec, vivaldi-stable --profile-directory="Profile 4" # college
+
 bind = CONTROL, 5, exec, ~/.config/hypr/scripts/keybind_manager_toggle.sh
 bind = Control, 6, exec, /home/zoro/Applications/VSCodium-1.107.18627.glibc2.30-x86_64.AppImage --enable-features=UseOzonePlatform --ozone-platform=wayland
 bind = CONTROL_SHIFT, 8, exec, /home/zoro/Applications/Antigravity/antigravity
+
+# Standard Launch
 bind = Control, 7, exec, /home/zoro/Applications/Windsurf/windsurf --enable-features=UseOzonePlatform --ozone-platform=wayland
 bind = Control, 8, exec, /home/zoro/Applications/Cursor-1.6.35-x86_64.AppImage --enable-features=UseOzonePlatform --ozone-platform=wayland
 bind = Control, 9, exec, /home/zoro/Applications/void-linux/void
@@ -133,4 +137,6 @@ bind = $mainMod, slash, exec, ~/.config/hypr/scripts/keybind_viewer.sh
 
 bind = , code:470, exec, ~/.config/hypr/scripts/powerProfile.sh # Fn+F5 power profile
 bind = , XF86RFKill, exec, ~/.config/hypr/scripts/AirplaneMode.sh # airplane mode
-bind = ,XF86ScreenSaver, exec, ~/.config/hypr/scripts/lock.sh # lock
+bind = , XF86ScreenSaver, exec, ~/.config/hypr/scripts/lock.sh # lock
+bind = $mainMod, D, exec, ~/.config/hypr/scripts/dashboard.sh
+

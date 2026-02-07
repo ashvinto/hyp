@@ -12,15 +12,14 @@ PanelWindow {
     required property var notification
     property int yOffset: 0
     
-    anchors.top: true
-    anchors.right: true
+    anchors.bottom: true
+    anchors.horizontalCenter: true
     
     margins {
-        top: 15 + root.yOffset
-        right: 15
+        bottom: 15 + root.yOffset
     }
     
-    Behavior on margins.top { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+    Behavior on margins.bottom { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
     
     implicitWidth: 350
     implicitHeight: 85
@@ -48,8 +47,8 @@ PanelWindow {
         border.width: 1
         clip: true
         
-        x: active ? 0 : 400
-        Behavior on x { NumberAnimation { duration: 400; easing.type: Easing.OutBack } }
+        y: active ? 0 : 150
+        Behavior on y { NumberAnimation { duration: 400; easing.type: Easing.OutBack } }
 
         RowLayout {
             anchors.fill: parent

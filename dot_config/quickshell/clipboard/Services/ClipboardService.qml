@@ -49,6 +49,22 @@ Singleton {
         Quickshell.execDetached(["sh", "-c", cmd])
     }
     
+    function deleteItem(fullLine, index) {
+        console.log("[Clipboard] Deleting item:", fullLine)
+        
+        // Pass the line as a single argument to printf to ensure exact match
+        var cmd = ["sh", "-c", "printf '%s' \"$1\" | cliphist delete", "--", fullLine]
+        
+        Quickshell.execDetached(cmd)
+        
+        // Remove from local model immediately
+        var newHistory = []
+        for (var i = 0; i < history.length; i++) {
+            if (i !== index) newHistory.push(history[i])
+        }
+        history = newHistory
+    }
+    
     function clear() {
         Quickshell.execDetached(["cliphist", "wipe"])
         history = []

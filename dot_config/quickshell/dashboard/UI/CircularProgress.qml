@@ -11,6 +11,7 @@ ColumnLayout {
     property color cDim: ThemeService.text_dim
     property color cSurface: ThemeService.surface_variant
     property int size: 60
+    property int strokeWidth: Math.max(2, size/12)
 
     spacing: 4
     
@@ -23,7 +24,7 @@ ColumnLayout {
             // Background Track
             Rectangle {
                 anchors.fill: parent; radius: size/2
-                color: "transparent"; border.width: Math.max(2, size/12); border.color: cSurface
+                color: "transparent"; border.width: strokeWidth; border.color: cSurface
             }
             
             // Progress Arc
@@ -31,10 +32,10 @@ ColumnLayout {
                 anchors.fill: parent
                 layer.enabled: true; layer.samples: 4
                 ShapePath {
-                    strokeColor: color; strokeWidth: Math.max(2, size/12); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+                    strokeColor: color; strokeWidth: parent.parent.parent.strokeWidth; fillColor: "transparent"; capStyle: ShapePath.RoundCap
                     PathAngleArc { 
                         centerX: size/2; centerY: size/2; 
-                        radiusX: size/2 - Math.max(1, size/24); radiusY: size/2 - Math.max(1, size/24); 
+                        radiusX: size/2 - strokeWidth/2; radiusY: size/2 - strokeWidth/2; 
                         startAngle: -90; sweepAngle: (Math.min(value, 100) / 100) * 360 
                     }
                 }

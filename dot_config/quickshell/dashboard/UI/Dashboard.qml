@@ -2,14 +2,12 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Effects
-import QtQuick.Shapes
 import Quickshell
 import Quickshell.Wayland
 import "../Services"
 
 PanelWindow {
     id: root
-
     anchors { top: true; bottom: true; left: true; right: true }
     color: "transparent"
 
@@ -18,248 +16,446 @@ PanelWindow {
     WlrLayershell.namespace: "dashboard"
 
     property bool visible_state: false
+    property bool powerMenuVisible: false
     Component.onCompleted: visible_state = true
 
-    function close() {
-        visible_state = false
-        exitTimer.start()
-    }
+    function close() { visible_state = false; exitTimer.start() }
     Timer { id: exitTimer; interval: 300; onTriggered: Qt.quit() }
 
-    function getGreeting() {
-        var hour = new Date().getHours();
-        if (hour < 12) return "Good Morning,"
-        if (hour < 18) return "Good Afternoon,"
-        return "Good Evening,"
-    }
-
-    // --- Colors ---
-    readonly property color cCard: ThemeService.surface
+    // --- Colors from Common ThemeService (Safe Access) ---
+    // readonly property color cBg: (typeof Common.ThemeService !== "undefined" && Common.ThemeService.backgroundDark) ? Common.ThemeService.backgroundDark : "#0b0b12"
+    readonly property color cCard: Qt.rgba(1, 1, 1, 0.04)
+    // readonly property color cAccent: (typeof Common.ThemeService !== "undefined" && Common.ThemeService.accent) ? Common.ThemeService.accent : "#cba6f7"
+    // readonly property color cText: (typeof Common.ThemeService !== "undefined" && Common.ThemeService.text) ? Common.ThemeService.text : "#cdd6f4"
+    // readonly property color cDim: (typeof Common.ThemeService !== "undefined" && Common.ThemeService.text_dim) ? Common.ThemeService.text_dim : "#6c7086"
+    readonly property color cBg: ThemeService.background
+    readonly property color cSurface: ThemeService.surface
+    readonly property color cAccent: ThemeService.accent
     readonly property color cText: ThemeService.text
     readonly property color cDim: ThemeService.text_dim
-    readonly property color cAccent: ThemeService.accent
-    readonly property color cRed: ThemeService.error
-    readonly property color cGreen: ThemeService.success
-    readonly property color cYellow: "#fab387"
-    readonly property color cBlue: "#89b4fa"
-    readonly property color cSurface: ThemeService.surface_variant
-    readonly property color cBorder: Qt.rgba(1, 1, 1, 0.08)
 
-    // --- Main UI ---
+
+    // --- Background ---
     Rectangle {
         anchors.fill: parent
-        color: "transparent"
-        opacity: visible_state ? 1 : 0
-        Behavior on opacity { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-
+        color: "black"
+        opacity: visible_state ? 0.7 : 0
+        Behavior on opacity { NumberAnimation { duration: 300 } }
         MouseArea { anchors.fill: parent; onClicked: root.close() }
         focus: true; Keys.onEscapePressed: root.close()
+    }
 
-        MultiEffect {
-            anchors.fill: parent; source: bgRect; blurEnabled: true; blur: 0.8; brightness: 0.4
+    // --- Main Window ---
+    Rectangle {
+        id: mainWindow
+        anchors.centerIn: parent
+        width: 1100
+        height: 650
+        radius: 24
+        clip: true
+
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: Qt.rgba(cBg.r, cBg.g, cBg.b, 0.9) }
+            GradientStop { position: 1.0; color: cBg }
         }
-        Rectangle { id: bgRect; anchors.fill: parent; color: Qt.rgba(0,0,0,0.5); visible: false }
+        border.width: 1
+        border.color: Qt.rgba(1,1,1,0.1)
 
-        // --- Main Container ---
-        Rectangle {
-            id: dashboardBody
-            anchors.centerIn: parent
-            width: 1000
-            height: 500
-            color: cCard
-            radius: 32
-            border.width: 1
-            border.color: cBorder
-            clip: true
+        layer.enabled: true
+        layer.effect: MultiEffect {
+            blurEnabled: false
+            shadowEnabled: true
+            shadowBlur: 0.6
+            shadowOpacity: 0.4
+        }
 
-            layer.enabled: true
-            layer.effect: MultiEffect { shadowEnabled: true; shadowOpacity: 0.2; shadowBlur: 0.6; shadowVerticalOffset: 5 }
+        transform: Scale {
+            origin.x: 550; origin.y: 325
+            xScale: visible_state ? 1 : 0.95
+            yScale: visible_state ? 1 : 0.95
+            Behavior on xScale { NumberAnimation { duration: 400; easing.type: Easing.OutBack } }
+            Behavior on yScale { NumberAnimation { duration: 400; easing.type: Easing.OutBack } }
+        }
+        opacity: visible_state ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: 300 } }
 
-            transform: Scale {
-                origin.x: 500; origin.y: 250
-                xScale: visible_state ? 1 : 0.95; yScale: visible_state ? 1 : 0.95
-                Behavior on xScale { NumberAnimation { duration: 400; easing.type: Easing.OutBack } }
-                Behavior on yScale { NumberAnimation { duration: 400; easing.type: Easing.OutBack } }
+        RowLayout {
+            anchors.fill: parent
+            spacing: 0
+
+            // --- Sidebar ---
+            Rectangle {
+                Layout.preferredWidth: 80
+                Layout.fillHeight: true
+                color: Qt.rgba(0,0,0,0.3)
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.topMargin: 30
+                    anchors.bottomMargin: 30
+                    spacing: 20
+
+                    TabButton {
+                        icon: ""
+                        active: stack.currentIndex === 0 && !powerMenuVisible
+                        onClicked: { stack.currentIndex = 0; powerMenuVisible = false }
+                    }
+                    TabButton {
+                        icon: ""
+                        active: stack.currentIndex === 1 && !powerMenuVisible
+                        onClicked: { stack.currentIndex = 1; powerMenuVisible = false }
+                    }
+
+                    Item { Layout.fillHeight: true }
+
+                    TabButton {
+                        icon: ""
+                        iconColor: "#f38ba8"
+                        active: powerMenuVisible
+                        onClicked: powerMenuVisible = !powerMenuVisible
+                    }
+                }
             }
 
-            RowLayout {
-                anchors.fill: parent
-                spacing: 0
+            // --- Content Area ---
+            Item {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
 
-                // 1. LEFT: Profile
-                Item {
-                    Layout.preferredWidth: 300
-                    Layout.fillHeight: true
-                    
-                    ColumnLayout {
-                        anchors.fill: parent; anchors.margins: 25
-                        spacing: 15
+                StackLayout {
+                    id: stack
+                    anchors.fill: parent
+                    currentIndex: 0
+                    opacity: powerMenuVisible ? 0.2 : 1
+                    Behavior on opacity { NumberAnimation { duration: 300 } }
 
-                        // Avatar - Using the same approach as shell dashboard
-                        Item {
-                            Layout.alignment: Qt.AlignHCenter
-                            width: 110; height: 110
-
-                            // Circular clipping rectangle with border
-                            Rectangle {
-                                id: profileClipper
-                                anchors.centerIn: parent
-                                width: 110; height: 110; radius: 55
-                                color: cSurface  // Background color
-                                border.width: 2; border.color: cAccent
-                                clip: true  // This ensures content outside the rectangle is not shown
-                            }
-
-                            // Profile image
-                            Image {
-                                id: profileImg
-                                anchors.centerIn: profileClipper
-                                width: profileClipper.width; height: profileClipper.height
-                                source: "file:///home/zoro/.face"
-                                fillMode: Image.PreserveAspectCrop
-                                smooth: true
-                                // This image will be clipped by the parent rectangle
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: Quickshell.execDetached(["/home/zoro/.config/quickshell/dashboard/assets/change_profile_pic.sh"])
-                            }
-                        }
-
-                        // Greeting & User
-                        ColumnLayout {
-                            Layout.fillWidth: true; spacing: 2; Layout.alignment: Qt.AlignHCenter
-                            Text { text: getGreeting(); color: cDim; font.pixelSize: 12; font.bold: true; Layout.alignment: Qt.AlignHCenter }
-                            Text { text: SystemService.user || "User"; color: cText; font.bold: true; font.pixelSize: 24; Layout.alignment: Qt.AlignHCenter }
-                            Text { text: "@" + (SystemService.hostname || "linux"); color: cAccent; font.bold: true; font.pixelSize: 11; Layout.alignment: Qt.AlignHCenter }
-                        }
-
-                        // Detailed Sys Info
-                        ColumnLayout {
-                            Layout.fillWidth: true; spacing: 8
-                            Layout.topMargin: 5; Layout.alignment: Qt.AlignHCenter
-                            
-                            SysInfoItem { icon: ""; label: "Kernel"; value: SystemService.kernelVersion || "Linux" }
-                            SysInfoItem { icon: "󰅐"; label: "Uptime"; value: (SystemService.uptime || "0h 0m").replace(" uptime", "") }
-                            SysInfoItem { icon: ""; label: "Packages"; value: "1240 (pacman)" }
-                            SysInfoItem { icon: ""; label: "WM"; value: "Hyprland" }
-                            SysInfoItem { icon: ""; label: "Shell"; value: "Zsh" }
-                        }
-
-                        Item { Layout.fillHeight: true }
-
-                        // Power Row
+                    // 1. HOME
+                    Item {
                         RowLayout {
-                            Layout.alignment: Qt.AlignHCenter; spacing: 12
-                            PowerBtn { icon: "󰌾"; btnColor: cAccent; size: 40; onClicked: QuickSettingsService.lock() }
-                            PowerBtn { icon: "󰤄"; btnColor: cYellow; size: 40; onClicked: Quickshell.execDetached(["systemctl", "suspend"]) }
-                            PowerBtn { icon: "󰑓"; btnColor: cBlue; size: 40; onClicked: QuickSettingsService.reboot() }
-                            PowerBtn { icon: "󰐥"; btnColor: cRed; size: 40; onClicked: QuickSettingsService.shutdown() }
-                        }
-                    }
-                    
-                    Rectangle { anchors.right: parent.right; width: 1; height: parent.height * 0.7; anchors.verticalCenter: parent.verticalCenter; color: cBorder }
-                }
-
-                // 2. CENTER: Unified Info
-                Item {
-                    Layout.preferredWidth: 400
-                    Layout.fillHeight: true
-                    
-                    ColumnLayout {
-                        anchors.fill: parent; anchors.margins: 25
-                        spacing: 20
-
-                        ColumnLayout {
-                            Layout.alignment: Qt.AlignHCenter; spacing: 0
-                            property var dateObj: new Date()
-                            Timer { interval: 1000; running: true; repeat: true; onTriggered: parent.dateObj = new Date() }
-                            
-                            Text { text: Qt.formatTime(parent.dateObj, "HH:mm"); color: cText; font.bold: true; font.pixelSize: 64; font.family: "JetBrains Mono"; Layout.alignment: Qt.AlignHCenter }
-                            Text { text: Qt.formatDate(parent.dateObj, "dddd, d MMMM"); color: cAccent; font.bold: true; font.pixelSize: 14; Layout.alignment: Qt.AlignHCenter }
-                        }
-
-                        ColumnLayout {
-                            Layout.alignment: Qt.AlignHCenter; spacing: 10
-                            RowLayout {
-                                Layout.alignment: Qt.AlignHCenter; spacing: 20
-                                RowLayout {
-                                    spacing: 10
-                                    Text { text: WeatherService.icon || "󰖐"; color: cAccent; font.pixelSize: 32; font.family: "Symbols Nerd Font" }
-                                    ColumnLayout {
-                                        spacing: 0
-                                        Text { text: WeatherService.temp || "0°C"; color: cText; font.bold: true; font.pixelSize: 18 }
-                                        Text { text: WeatherService.description || "Cloudy"; color: cDim; font.pixelSize: 10; font.capitalization: Font.Capitalize }
+                            anchors.fill: parent; anchors.margins: 40; spacing: 40
+                            ColumnLayout {
+                                Layout.fillWidth: true; spacing: 30
+                                ColumnLayout {
+                                    Text { text: Qt.formatTime(new Date(), "HH:mm"); color: cText; font.pixelSize: 84; font.bold: true; font.family: "JetBrains Mono" }
+                                    Text { text: Qt.formatDate(new Date(), "dddd, MMMM d"); color: cAccent; font.pixelSize: 22; font.bold: true }
+                                }
+                                Rectangle {
+                                    width: 160; height: 60; radius: 30; color: cCard; border.width: 1; border.color: Qt.rgba(1,1,1,0.1)
+                                    RowLayout {
+                                        anchors.centerIn: parent; spacing: 12
+                                        Text { text: (typeof WeatherService !== "undefined" ? WeatherService.icon : "󰖐") || "󰖐"; color: cText; font.pixelSize: 28; font.family: "Symbols Nerd Font" }
+                                        Text { text: (typeof WeatherService !== "undefined" ? WeatherService.temp : "0°C") || "0°C"; color: cText; font.bold: true; font.pixelSize: 18 }
                                     }
                                 }
-                                ColumnLayout {
-                                    spacing: 2
-                                    Text { text: " " + (WeatherService.humidity || 0) + "%"; color: cDim; font.pixelSize: 10; font.family: "Symbols Nerd Font" }
-                                    Text { text: " " + (WeatherService.windSpeed || 0) + "km"; color: cDim; font.pixelSize: 10; font.family: "Symbols Nerd Font" }
+                                GridLayout {
+                                    columns: 2; columnSpacing: 20; rowSpacing: 20; Layout.fillWidth: true
+                                    StatCard { icon: ""; label: "CPU"; value: (typeof ResourceService !== "undefined" ? Math.round(ResourceService.cpu) : 0) + "%"; statColor: "#f38ba8" }
+                                    StatCard { icon: ""; label: "RAM"; value: (typeof ResourceService !== "undefined" ? Math.round(ResourceService.ram) : 0) + "%"; statColor: "#fab387" }
+                                    StatCard { icon: "󰇚"; label: "Down"; value: (typeof ResourceService !== "undefined" ? ResourceService.netDown : "0B/s"); statColor: "#a6e3a1" }
+                                    StatCard { icon: "󰕒"; label: "Up"; value: (typeof ResourceService !== "undefined" ? ResourceService.netUp : "0B/s"); statColor: "#89b4fa" }
                                 }
                             }
-                            Text { text: "󰉬 " + (WeatherService.city || "Searching..."); color: cAccent; font.bold: true; font.pixelSize: 11; font.family: "Symbols Nerd Font"; Layout.alignment: Qt.AlignHCenter }
+                            Rectangle {
+                                Layout.preferredWidth: 350; Layout.fillHeight: true; color: cCard; radius: 24; border.width: 1; border.color: Qt.rgba(1,1,1,0.1); clip: true
+                                FullMediaPlayer { anchors.fill: parent; anchors.margins: 20 }
+                            }
                         }
+                    }
 
-                        Rectangle { Layout.fillWidth: true; height: 1; color: cBorder }
+                    // 2. SYSTEM
+                    Item {
+                        ColumnLayout {
+                            anchors.fill: parent; anchors.margins: 40; spacing: 25
+                            RowLayout {
+                                Layout.fillWidth: true; Layout.fillHeight: true; spacing: 25
+                                Rectangle {
+                                    Layout.fillWidth: true; Layout.fillHeight: true; color: cCard; radius: 24
+                                    ColumnLayout {
+                                        anchors.centerIn: parent; spacing: 30
+                                        RowLayout {
+                                            spacing: 40
+                                            CircularProgress { value: typeof ResourceService !== "undefined" ? ResourceService.cpu : 0; label: "CPU"; color: "#f38ba8"; size: 120 }
+                                            CircularProgress { value: typeof ResourceService !== "undefined" ? ResourceService.ram : 0; label: "RAM"; color: "#fab387"; size: 120 }
+                                            CircularProgress { value: typeof ResourceService !== "undefined" ? ResourceService.gpu : 0; label: "GPU"; color: "#89b4fa"; size: 120 }
+                                        }
+                                        RowLayout {
+                                            Layout.alignment: Qt.AlignHCenter; spacing: 40
+                                            StatMini { icon: "󰋊"; label: "Disk"; value: typeof ResourceService !== "undefined" ? ResourceService.disk : "0%"; statMiniColor: "#a6e3a1" }
+                                            StatMini { icon: ""; label: "Temp"; value: (typeof ResourceService !== "undefined" ? Math.round(ResourceService.cpuTemp) : 0) + "°C"; statMiniColor: "#f9e2af" }
+                                        }
+                                    }
+                                }
+                                Rectangle {
+                                    Layout.preferredWidth: 350; Layout.fillHeight: true; color: cCard; radius: 24
+                                    ColumnLayout {
+                                        anchors.fill: parent; anchors.margins: 25; spacing: 15
+                                        Text { text: "System Information"; color: cText; font.bold: true; font.pixelSize: 18 }
+                                        Rectangle { Layout.fillWidth: true; height: 1; color: Qt.rgba(1,1,1,0.1) }
+                                        InfoLine { label: "OS"; value: "Arch Linux"; icon: "󰣇" }
+                                        InfoLine { label: "Kernel"; value: (typeof SystemService !== "undefined" ? SystemService.kernelVersion : "Linux") || "Linux"; icon: "" }
+                                        InfoLine { label: "Uptime"; value: (typeof SystemService !== "undefined" ? SystemService.uptime : "0m") || "0m"; icon: "󰅐" }
+                                        InfoLine { label: "Shell"; value: "zsh 5.9"; icon: "" }
+                                        InfoLine { label: "WM"; value: "Hyprland"; icon: "" }
+                                        Item { Layout.fillHeight: true }
+                                        Rectangle {
+                                            Layout.fillWidth: true; height: 60; radius: 15; color: Qt.rgba(1,1,1,0.05)
+                                            RowLayout {
+                                                anchors.centerIn: parent; spacing: 20
+                                                Text { text: "󰖩 " + (typeof QuickSettingsService !== "undefined" && LQuickSettingsService.wifiEnabled ? "Online" : "Offline"); color: (typeof QuickSettingsService !== "undefined" && QuickSettingsService.wifiEnabled) ? "#a6e3a1" : "#f38ba8"; font.bold: true; font.pixelSize: 12; font.family: "Symbols Nerd Font" }
+                                                Text { text: "󰁹 " + (typeof QuickSettingsService !== "undefined" ? QuickSettingsService.batteryLevel : 0) + "%"; color: "#f9e2af"; font.bold: true; font.pixelSize: 12; font.family: "Symbols Nerd Font" }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            Rectangle {
+                                Layout.fillWidth: true; Layout.preferredHeight: 120; color: cCard; radius: 24
+                                RowLayout {
+                                    anchors.fill: parent; anchors.margins: 25; spacing: 20
+                                    Rectangle { width: 70; height: 70; radius: 35; clip: true; Image { source: "file:///home/zoro/.face"; anchors.fill: parent; fillMode: Image.PreserveAspectCrop } }
+                                    ColumnLayout {
+                                        Text { text: typeof SystemService !== "undefined" ? SystemService.user : "User"; color: cText; font.bold: true; font.pixelSize: 22 }
+                                        Text { text: typeof SystemService !== "undefined" ? SystemService.hostname : "Host"; color: cDim; font.pixelSize: 14 }
+                                    }
+                                    Item { Layout.fillWidth: true }
+                                }
+                            }
+                        }
+                    }
+                }
 
-                        GridLayout {
-                            Layout.alignment: Qt.AlignHCenter
-                            columns: 4; columnSpacing: 15
-                            CircularProgress { value: ResourceService.cpu; label: "CPU"; color: cRed; size: 48 }
-                            CircularProgress { value: ResourceService.ram; label: "RAM"; color: cYellow; size: 48 }
-                            CircularProgress { value: ResourceService.gpu; label: "GPU"; color: cBlue; size: 48 }
-                            CircularProgress { value: parseFloat(ResourceService.disk); label: "DISK"; color: cGreen; size: 48 }
+                // --- SLIDING POWER MENU ---
+                Rectangle {
+                    id: powerPanel
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    width: 140
+                    color: Qt.rgba(0,0,0,0.4)
+                    border.width: 1
+                    border.color: Qt.rgba(1,1,1,0.1)
+
+                    x: powerMenuVisible ? parent.width - width : parent.width
+                    Behavior on x { NumberAnimation { duration: 400; easing.type: Easing.OutQuart } }
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.topMargin: 50
+                        anchors.bottomMargin: 50
+                        spacing: 25
+
+                        PowerActionMini {
+                            icon: "󰌾"
+                            label: "Lock"
+                            color: cAccent
+                            action: function() { if (typeof QuickSettingsService !== "undefined") QuickSettingsService.lock(); root.close() }
+                        }
+                        PowerActionMini {
+                            icon: "󰤄"
+                            label: "Sleep"
+                            color: "#89b4fa"
+                            action: function() { Quickshell.execDetached(["systemctl", "suspend"]); root.close() }
+                        }
+                        PowerActionMini {
+                            icon: "󰑓"
+                            label: "Reboot"
+                            color: "#fab387"
+                            action: function() { if (typeof QuickSettingsService !== "undefined") QuickSettingsService.reboot() }
+                        }
+                        PowerActionMini {
+                            icon: "󰐥"
+                            label: "Power"
+                            color: "#f38ba8"
+                            action: function() { if (typeof QuickSettingsService !== "undefined") QuickSettingsService.shutdown() }
                         }
 
                         Item { Layout.fillHeight: true }
 
-                        RowLayout {
-                            Layout.alignment: Qt.AlignHCenter; spacing: 20
-                            StatusPill { icon: QuickSettingsService.wifiEnabled ? "󰖩" : "󰖪"; label: QuickSettingsService.wifiEnabled ? "Online" : "Offline"; iconColor: QuickSettingsService.wifiEnabled ? cGreen : cRed }
-                            StatusPill { icon: QuickSettingsService.isCharging ? "󱐋" : "󰁹"; label: QuickSettingsService.batteryLevel + "%"; iconColor: cYellow }
+                        PowerActionMini {
+                            icon: "󰅖"
+                            label: "Back"
+                            color: cText
+                            action: function() { powerMenuVisible = false }
                         }
                     }
-                    
-                    Rectangle { anchors.right: parent.right; width: 1; height: parent.height * 0.7; anchors.verticalCenter: parent.verticalCenter; color: cBorder }
-                }
-
-                // 3. RIGHT: Media Player
-                Item {
-                    Layout.preferredWidth: 300
-                    Layout.fillHeight: true
-                    clip: true
-                    FullMediaPlayer { anchors.centerIn: parent; width: parent.width }
                 }
             }
         }
     }
 
     // --- Components ---
-    component SysInfoItem: RowLayout {
-        property string icon: ""; property string label: ""; property string value: ""
-        spacing: 12; Layout.alignment: Qt.AlignHCenter; Layout.fillWidth: true
-        Text { text: icon; color: cAccent; font.pixelSize: 14; font.family: "Symbols Nerd Font"; Layout.preferredWidth: 20 }
-        Text { text: label; color: cDim; font.pixelSize: 9; font.bold: true; Layout.preferredWidth: 60 }
-        Text { text: value; color: cText; font.pixelSize: 11; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true; horizontalAlignment: Text.AlignRight }
+
+    component TabButton: Rectangle {
+        property string icon: ""
+        property bool active: false
+        property color iconColor: active ? cAccent : cDim
+        signal clicked()
+
+        width: 50
+        height: 50
+        radius: 12
+        color: active ? Qt.rgba(cAccent.r, cAccent.g, cAccent.b, 0.1) : "transparent"
+        border.color: active ? cAccent : "transparent"
+        border.width: 1
+        Layout.alignment: Qt.AlignHCenter
+
+        Text {
+            anchors.centerIn: parent
+            text: icon
+            color: parent.iconColor
+            font.pixelSize: 24
+            font.family: "Symbols Nerd Font"
+        }
+        MouseArea {
+            anchors.fill: parent
+            onClicked: parent.clicked()
+            hoverEnabled: true
+        }
     }
 
-    component PowerBtn: Rectangle {
-        property string icon: ""; property color btnColor: cText; property int size: 40; signal clicked()
-        width: size; height: size; radius: size/2; color: cSurface; border.color: hoverHandler.hovered ? btnColor : "transparent"; border.width: 1
-        Text { anchors.centerIn: parent; text: icon; color: parent.btnColor; font.pixelSize: size*0.45; font.family: "Symbols Nerd Font" }
-        HoverHandler { id: hoverHandler }
-        MouseArea { anchors.fill: parent; onClicked: parent.clicked() }
-        Behavior on scale { NumberAnimation { duration: 100 } }
-        scale: hoverHandler.hovered ? 1.1 : 1.0
+    component StatCard: Rectangle {
+        property string icon: ""
+        property string label: ""
+        property string value: ""
+        property color statColor: cAccent
+
+        Layout.fillWidth: true
+        height: 90
+        radius: 18
+        color: cCard
+
+        RowLayout {
+            anchors.centerIn: parent
+            spacing: 15
+            Rectangle {
+                width: 44
+                height: 44
+                radius: 22
+                color: Qt.rgba(parent.statColor.r, parent.statColor.g, parent.statColor.b, 0.2)
+                Text {
+                    anchors.centerIn: parent
+                    text: icon
+                    color: parent.parent.statColor
+                    font.pixelSize: 22
+                    font.family: "Symbols Nerd Font"
+                }
+            }
+            ColumnLayout {
+                spacing: 2
+                Text {
+                    text: label
+                    color: cDim
+                    font.pixelSize: 11
+                    font.bold: true
+                }
+                Text {
+                    text: value
+                    color: cText
+                    font.pixelSize: 18
+                    font.bold: true
+                }
+            }
+        }
     }
 
-    component StatusPill: RowLayout {
-        property string icon: ""; property string label: ""; property color iconColor: cText
-        spacing: 12; Layout.alignment: Qt.AlignHCenter
-        Rectangle { width: 34; height: 34; radius: 17; color: cSurface; Text { anchors.centerIn: parent; text: icon; color: iconColor; font.pixelSize: 16; font.family: "Symbols Nerd Font" } }
-        Text { text: label; color: cText; font.bold: true; font.pixelSize: 12; Layout.preferredWidth: 70 }
+    component StatMini: RowLayout {
+        property string icon: ""
+        property string label: ""
+        property string value: ""
+        property color statMiniColor: cAccent
+
+        spacing: 10
+        Text {
+            text: icon
+            color: parent.statMiniColor
+            font.pixelSize: 18
+            font.family: "Symbols Nerd Font"
+        }
+        ColumnLayout {
+            spacing: 0
+            Text {
+                text: label
+                color: cDim
+                font.pixelSize: 9
+                font.bold: true
+            }
+            Text {
+                text: value
+                color: cText
+                font.pixelSize: 13
+                font.bold: true
+            }
+        }
+    }
+
+    component InfoLine: RowLayout {
+        property string label: ""
+        property string value: ""
+        property string icon: ""
+
+        Layout.fillWidth: true
+        spacing: 12
+        Text {
+            text: icon
+            color: cAccent
+            font.pixelSize: 14
+            font.family: "Symbols Nerd Font"
+            Layout.preferredWidth: 20
+        }
+        Text {
+            text: label
+            color: cDim
+            font.pixelSize: 11
+            font.bold: true
+            Layout.fillWidth: true
+        }
+        Text {
+            text: value
+            color: cText
+            font.pixelSize: 11
+            font.bold: true
+            Layout.alignment: Qt.AlignRight
+        }
+    }
+
+    component PowerActionMini: ColumnLayout {
+        property string icon: ""
+        property string label: ""
+        property color color: cText
+        property var action: null
+
+        spacing: 8
+        Layout.alignment: Qt.AlignHCenter
+
+        Rectangle {
+            width: 70
+            height: 70
+            radius: 20
+            color: Qt.rgba(1,1,1,0.03)
+            border.color: hover.hovered ? parent.color : "transparent"
+            border.width: 1
+            Text {
+                anchors.centerIn: parent
+                text: icon
+                color: parent.parent.color
+                font.pixelSize: 32
+                font.family: "Symbols Nerd Font"
+            }
+            MouseArea {
+                anchors.fill: parent
+                onClicked: { if (parent.parent.action) parent.parent.action() }
+            }
+            HoverHandler { id: hover }
+            scale: hover.hovered ? 1.05 : 1.0
+            Behavior on scale { NumberAnimation { duration: 200 } }
+        }
+        Text {
+            text: label
+            color: cText
+            font.pixelSize: 11
+            font.bold: true
+            Layout.alignment: Qt.AlignHCenter
+            opacity: hover.hovered ? 1 : 0.6
+        }
     }
 }

@@ -15,7 +15,7 @@ PanelWindow {
 
     // Fixed width, expands to fit content when hovered
     implicitWidth: 400
-    implicitHeight: hoverHandler.hovered ? (contentCol.implicitHeight + 78) : 30  // Fixed minimum height
+    implicitHeight: hoverHandler.hovered ? (contentCol.implicitHeight + 30) : 30  // Fixed minimum height
 
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
@@ -27,8 +27,6 @@ PanelWindow {
     readonly property color cText: ThemeService.text
     readonly property color cDim: ThemeService.text_dim
     readonly property color cRed: ThemeService.error
-    readonly property color cGreen: ThemeService.success
-    readonly property color cYellow: "#fab387"
 
     color: "transparent"
 
@@ -71,13 +69,12 @@ PanelWindow {
             RowLayout {
                 spacing: 12
                 Rectangle {
-                    width: 45; height: 45; radius: 22.5; color: cSurface
+                    width: 40; height: 40; radius: 20; color: cSurface
                     border.color: cAccent; border.width: 1
                     Text {
                         anchors.centerIn: parent
-                        text: "" // User Icon
-                        font.family: "Symbols Nerd Font"
-                        font.pixelSize: 20; color: cAccent
+                        text: (SystemService.user && SystemService.user.length > 0) ? SystemService.user[0].toUpperCase() : "?"
+                        font.bold: true; font.pixelSize: 16; color: cAccent
                     }
                 }
                 ColumnLayout {
@@ -144,27 +141,53 @@ PanelWindow {
                 }
             }
 
-            // SYSTEM MONITOR SECTION
-            RowLayout {
-                Layout.fillWidth: true; spacing: 10
-                StatPill {
-                    value: Math.round(ResourceService.cpu) + "%";
-                    icon: "";
-                    accentColor: cRed
+            // SYSTEM MONITOR SECTION - Expanded system information
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 10
+
+                // CPU, RAM, Battery row
+                RowLayout {
+                    Layout.fillWidth: true; spacing: 10
+                    StatPill {
+                        value: Math.round(ResourceService.cpu) + "%";
+                        icon: "";
+                        color: cRed
+                    }
+                    StatPill {
+                        value: Math.round(ResourceService.ram) + "%";
+                        icon: "";
+                        color: cYellow || "#fab387"
+                    }
+                    StatPill {
+                        value: QuickSettingsService.batteryLevel + "%";
+                        icon: "󰁹";
+                        color: cGreen || "#a6e3a1"
+                    }
                 }
-                StatPill {
-                    value: Math.round(ResourceService.ram) + "%";
-                    icon: "";
-                    accentColor: cYellow || "#fab387"
+
+                // Additional system info row
+                RowLayout {
+                    Layout.fillWidth: true; spacing: 10
+                    StatPill {
+                        value: Math.round(ResourceService.gpu) + "%";
+                        icon: "󰢽";
+                        color: cBlue || "#89b4fa"
+                    }
+                    StatPill {
+                        value: ResourceService.disk;
+                        icon: "󱛟";
+                        color: cDim
+                    }
+                    StatPill {
+                        value: Math.round(ResourceService.cpuTemp) + "°C";
+                        icon: "";
+                        color: ResourceService.cpuTemp > 70 ? cRed : cYellow
+                    }
                 }
-                StatPill {
-                    value: QuickSettingsService.batteryLevel + "%";
-                    icon: "󰁹";
-                    accentColor: cGreen || "#a6e3a1"
-                }
-            }
             }
         }
+    }
 
     // COMPONENTS
     component IconButton: Rectangle {
@@ -180,9 +203,6 @@ PanelWindow {
         signal clicked()
         Layout.fillWidth: true; height: 50; radius: 12
         color: active ? cAccent : cSurface
-        border.width: 1
-        border.color: active ? cAccent : Qt.rgba(1,1,1,0.1)
-        
         RowLayout {
             anchors.fill: parent; anchors.margins: 10; spacing: 10
             Text { text: icon; color: active ? cBg : cAccent; font.pixelSize: 16; font.family: "Symbols Nerd Font" }
@@ -214,31 +234,20 @@ PanelWindow {
         }
     }
 
-    component StatPill: Rectangle {
-        id: spRoot
-        property string value: ""; property string icon: ""; property color accentColor: cAccent
-        Layout.fillWidth: true
-        height: 36
-        radius: 18
-        color: cSurface
-        
-        Row {
-            anchors.centerIn: parent
-            spacing: 8
-            Text {
-                text: spRoot.icon;
-                color: spRoot.accentColor;
-                font.pixelSize: 14;
-                font.family: "Symbols Nerd Font"
-                anchors.verticalCenter: parent.verticalCenter
-            }
-            Text {
-                text: spRoot.value;
-                color: cText;
-                font.bold: true;
-                font.pixelSize: 12
-                anchors.verticalCenter: parent.verticalCenter
-            }
+    component StatPill: RowLayout {
+        property string value: ""; property string icon: ""; property color color: cAccent
+        spacing: 6  // Increased spacing for better readability
+        Text {
+            text: icon;
+            color: parent.color;
+            font.pixelSize: 12;  // Slightly larger icon
+            font.family: "Symbols Nerd Font"
+        }
+        Text {
+            text: value;
+            color: cText;
+            font.bold: true;
+            font.pixelSize: 11  // Slightly larger text
         }
     }
 }

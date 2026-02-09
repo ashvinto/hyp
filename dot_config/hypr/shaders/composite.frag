@@ -7,7 +7,7 @@ out vec4 fragColor;
 void main() {
     vec4 pix = texture(tex, v_texcoord);
     pix.r *= 1.000;
-    pix.g *= 0.998;
-    pix.b *= 0.994;
+    pix.g *= 1.000;
+    pix.b *= 1.000;
     fragColor = pix;
 }

@@ -15,12 +15,12 @@ PanelWindow {
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
     WlrLayershell.namespace: "settings"
 
-    // --- Colors from ThemeService ---
-    readonly property color cBg: ThemeService.backgroundDark
-    readonly property color cSurface: ThemeService.surface
-    readonly property color cAccent: ThemeService.accent
-    readonly property color cText: ThemeService.text
-    readonly property color cDim: ThemeService.text_dim
+    // --- Colors from ThemeService (Safe Access) ---
+    readonly property color cBg: (typeof ThemeService !== "undefined" && ThemeService.backgroundDark) ? ThemeService.backgroundDark : "#11111b"
+    readonly property color cSurface: (typeof ThemeService !== "undefined" && ThemeService.surface) ? ThemeService.surface : "#1e1e2e"
+    readonly property color cAccent: (typeof ThemeService !== "undefined" && ThemeService.accent) ? ThemeService.accent : "#cba6f7"
+    readonly property color cText: (typeof ThemeService !== "undefined" && ThemeService.text) ? ThemeService.text : "#cdd6f4"
+    readonly property color cDim: (typeof ThemeService !== "undefined" && ThemeService.text_dim) ? ThemeService.text_dim : "#6c7086"
 
     property bool active: false
     Component.onCompleted: active = true
@@ -106,7 +106,7 @@ PanelWindow {
                     
                     Item { Layout.fillHeight: true }
                     Text { 
-                        text: "v1.0.4 - Zoro"
+                        text: "v1.0.8 - Zoro"
                         color: cDim
                         font.pixelSize: 10
                         Layout.alignment: Qt.AlignHCenter 
@@ -130,7 +130,15 @@ PanelWindow {
                         anchors.leftMargin: 40
                         anchors.rightMargin: 40
                         Text { 
-                            text: stack.currentIndex === 0 ? "Visuals" : stack.currentIndex === 1 ? "Display" : stack.currentIndex === 2 ? "System" : "Theme"
+                            text: {
+                                switch(stack.currentIndex) {
+                                    case 0: return "Visuals"
+                                    case 1: return "Display"
+                                    case 2: return "System"
+                                    case 3: return "Theme"
+                                    default: return ""
+                                }
+                            }
                             color: cText
                             font.bold: true
                             font.pixelSize: 28 
@@ -148,7 +156,7 @@ PanelWindow {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     
-                    // --- VISUALS ---
+                    // --- VISUALS (0) ---
                     SettingsPage {
                         title: "Appearance & Shell"
                         ColumnLayout {
@@ -158,32 +166,32 @@ PanelWindow {
                                 label: "Zen Mode"
                                 desc: "Disable all animations and effects"
                                 icon: "󰚀"
-                                active: ConfigService.zenMode
-                                onClicked: ConfigService.toggleZen() 
+                                active: typeof ConfigService !== "undefined" ? ConfigService.zenMode : false
+                                onClicked: if (typeof ConfigService !== "undefined") ConfigService.toggleZen() 
                             }
                             SettingSwitch { 
                                 label: "Show Taskbar"
                                 desc: "Keep the dock visible on edges"
                                 icon: "󰮇"
-                                active: ConfigService.showTaskbar
-                                onClicked: ConfigService.showTaskbar = !ConfigService.showTaskbar 
+                                active: typeof ConfigService !== "undefined" ? ConfigService.showTaskbar : true
+                                onClicked: if (typeof ConfigService !== "undefined") ConfigService.showTaskbar = !ConfigService.showTaskbar 
                             }
                             SettingSlider { 
                                 label: "Glass Opacity"
                                 icon: "󰃟"
-                                value: ConfigService.glassOpacity
-                                onMoved: (v) => ConfigService.glassOpacity = v 
+                                value: typeof ConfigService !== "undefined" ? ConfigService.glassOpacity : 0.85
+                                onMoved: (v) => { if (typeof ConfigService !== "undefined") ConfigService.glassOpacity = v }
                             }
                             SettingSlider { 
                                 label: "Dock Magnification"
                                 icon: "󰍉"
-                                value: (ConfigService.dockScale - 1) / 0.5
-                                onMoved: (v) => ConfigService.dockScale = 1 + (v * 0.5) 
+                                value: typeof ConfigService !== "undefined" ? (ConfigService.dockScale - 1) / 0.5 : 0.6
+                                onMoved: (v) => { if (typeof ConfigService !== "undefined") ConfigService.dockScale = 1 + (v * 0.5) }
                             }
                         }
                     }
 
-                    // --- DISPLAY ---
+                    // --- DISPLAY (1) ---
                     SettingsPage {
                         title: "Monitors & Effects"
                         ColumnLayout {
@@ -192,29 +200,53 @@ PanelWindow {
                             SettingSlider { 
                                 label: "Night Light (Warmth)"
                                 icon: "󰖔"
-                                value: (ConfigService.nightLightWarmth - 1000) / 5500
-                                onMoved: (v) => ConfigService.setNightLight(1000 + (v * 5500)) 
+                                value: typeof ConfigService !== "undefined" ? (ConfigService.nightLightWarmth - 1000) / 5500 : 1
+                                onMoved: (v) => { if (typeof ConfigService !== "undefined") ConfigService.setNightLight(1000 + (v * 5500)) }
                             }
                             SettingSlider { 
                                 label: "Hardware Brightness"
                                 icon: "󰃞"
-                                value: ConfigService.softwareDim
-                                onMoved: (v) => ConfigService.setDimming(v) 
+                                value: typeof ConfigService !== "undefined" ? ConfigService.softwareDim : 1
+                                onMoved: (v) => { if (typeof ConfigService !== "undefined") ConfigService.setDimming(v) }
                             }
                         }
                     }
 
-                    // --- SYSTEM ---
+                    // --- SYSTEM (2) ---
                     SettingsPage { 
-                        title: "Performance & Setup"
-                        Text { 
-                            text: "No system settings available yet."
-                            color: cDim
-                            font.italic: true 
-                        } 
+                        title: "Hyprland & Quickshell Controls"
+                        ColumnLayout {
+                            spacing: 25
+                            Layout.fillWidth: true
+                            SettingSwitch { 
+                                label: "Hardware Blur"
+                                desc: "Enable/Disable window blur effects"
+                                icon: "󰃟"
+                                active: (typeof ConfigService !== "undefined" && ConfigService.hyprBlur !== undefined) ? ConfigService.hyprBlur : true
+                                onClicked: if (typeof ConfigService !== "undefined") ConfigService.hyprBlur = !ConfigService.hyprBlur 
+                            }
+                            SettingSlider { 
+                                label: "Window Rounding"
+                                icon: "󰃠"
+                                value: typeof ConfigService !== "undefined" ? ConfigService.hyprRounding / 30 : 0.4
+                                onMoved: (v) => { if (typeof ConfigService !== "undefined") ConfigService.hyprRounding = Math.round(v * 30) }
+                            }
+                            SettingSlider { 
+                                label: "Inner Gaps"
+                                icon: "󰖲"
+                                value: typeof ConfigService !== "undefined" ? ConfigService.hyprGapsIn / 20 : 0.25
+                                onMoved: (v) => { if (typeof ConfigService !== "undefined") ConfigService.hyprGapsIn = Math.round(v * 20) }
+                            }
+                            SettingSlider { 
+                                label: "Outer Gaps"
+                                icon: "󰖳"
+                                value: typeof ConfigService !== "undefined" ? ConfigService.hyprGapsOut / 40 : 0.25
+                                onMoved: (v) => { if (typeof ConfigService !== "undefined") ConfigService.hyprGapsOut = Math.round(v * 40) }
+                            }
+                        }
                     }
                     
-                    // --- THEME ---
+                    // --- THEME (3) ---
                     SettingsPage {
                         title: "Color Customization"
                         GridLayout {
@@ -222,7 +254,7 @@ PanelWindow {
                             columnSpacing: 20
                             rowSpacing: 20
                             Repeater {
-                                model: ["#cba6f7", "#89b4fa", "#a6e3a1", "#f38ba8", "#fab387", "#f9e2af", "#94e2d5", "#89dceb"]
+                                model: ["#cba6f7", "#89b4fa", "#a6e3a1", "#f38ba8", "#fab387", "#f9e2af", "#94e2d5", "#89dceb", "#66dbb2", "#ffb4ab", "#84f8cd", "#f5c2e7"]
                                 delegate: Rectangle {
                                     width: 60
                                     height: 60
@@ -232,7 +264,7 @@ PanelWindow {
                                     border.color: cAccent === modelData ? "white" : "transparent"
                                     MouseArea { 
                                         anchors.fill: parent
-                                        onClicked: ThemeService.accent = parent.color 
+                                        onClicked: if (typeof ThemeService !== "undefined") ThemeService.accent = parent.color
                                     }
                                 }
                             }
@@ -303,64 +335,71 @@ PanelWindow {
         }
     }
 
-    component SettingSwitch: RowLayout {
+    component SettingSwitch: Item {
+        id: switchRoot
         property string label: ""
         property string desc: ""
         property string icon: ""
         property bool active: false
         signal clicked()
         
-        spacing: 20
         Layout.fillWidth: true
-        
-        Rectangle { 
-            width: 54
-            height: 54
-            radius: 16
-            color: cSurface
-            Text { 
-                anchors.centerIn: parent
-                text: icon
-                color: cAccent
-                font.pixelSize: 24
-                font.family: "Symbols Nerd Font" 
-            } 
-        }
-        
-        ColumnLayout { 
-            spacing: 2
-            Layout.fillWidth: true
-            Text { 
-                text: label
-                color: cText
-                font.bold: true
-                font.pixelSize: 16 
-            }
-            Text { 
-                text: desc
-                color: cDim
-                font.pixelSize: 12 
-            } 
-        }
-        
-        Rectangle {
-            width: 54
-            height: 28
-            radius: 14
-            color: active ? cAccent : Qt.rgba(1,1,1,0.1)
+        height: 60
+
+        RowLayout {
+            anchors.fill: parent
+            spacing: 20
+            
             Rectangle { 
-                x: active ? 28 : 3
-                anchors.verticalCenter: parent.verticalCenter
-                width: 22
-                height: 22
-                radius: 11
-                color: "white"
-                Behavior on x { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } } 
+                width: 54
+                height: 54
+                radius: 16
+                color: cSurface
+                Text { 
+                    anchors.centerIn: parent
+                    text: switchRoot.icon
+                    color: cAccent
+                    font.pixelSize: 24
+                    font.family: "Symbols Nerd Font" 
+                } 
             }
-            MouseArea { 
-                anchors.fill: parent
-                onClicked: parent.parent.clicked() 
+            
+            ColumnLayout { 
+                spacing: 2
+                Layout.fillWidth: true
+                Text { 
+                    text: switchRoot.label
+                    color: cText
+                    font.bold: true
+                    font.pixelSize: 16 
+                }
+                Text { 
+                    text: switchRoot.desc
+                    color: cDim
+                    font.pixelSize: 12 
+                } 
             }
+            
+            Rectangle {
+                width: 54
+                height: 28
+                radius: 14
+                color: switchRoot.active ? cAccent : Qt.rgba(1,1,1,0.1)
+                Rectangle { 
+                    x: switchRoot.active ? 28 : 3
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 22
+                    height: 22
+                    radius: 11
+                    color: "white"
+                    Behavior on x { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } } 
+                }
+            }
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: switchRoot.clicked()
         }
     }
 
@@ -390,7 +429,12 @@ PanelWindow {
                 Layout.fillWidth: true 
             }
             Text { 
-                text: Math.round(sliderComp.value * 100) + "%"
+                text: {
+                    if (label.includes("Rounding")) return Math.round(sliderComp.value * 30)
+                    if (label.includes("Inner")) return Math.round(sliderComp.value * 20)
+                    if (label.includes("Outer")) return Math.round(sliderComp.value * 40)
+                    return Math.round(sliderComp.value * 100) + "%"
+                }
                 color: cAccent
                 font.bold: true
                 font.pixelSize: 12 

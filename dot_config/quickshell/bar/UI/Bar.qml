@@ -32,10 +32,11 @@ PanelWindow {
         // Header + Ethernet
         h += 60
         // Active WiFi Section
-        var activeNets = NetworkService.networks.filter(function(n) { return n.active || n.ssid === NetworkService.activeWifiSsid })
+        var nets = (typeof NetworkService !== "undefined" && NetworkService.networks) ? NetworkService.networks : []
+        var activeNets = nets.filter(function(n) { return n.active || n.ssid === NetworkService.activeWifiSsid })
         if (activeNets.length > 0) h += 80
         // Available Networks Section
-        var availNets = NetworkService.networks.filter(function(n) { return !n.active && n.ssid !== NetworkService.activeWifiSsid })
+        var availNets = nets.filter(function(n) { return !n.active && n.ssid !== NetworkService.activeWifiSsid })
         h += Math.min(availNets.length * rowHeight + 40, 350)
         // Footer (Networking, WiFi toggles, manual, editor)
         h += 175
@@ -44,7 +45,8 @@ PanelWindow {
 
     property real bluetoothMenuHeight: {
         var h = 60 // Header
-        h += Math.min(BluetoothService.devices.length * rowHeight + 40, 350)
+        var devices = (typeof BluetoothService !== "undefined" && BluetoothService.devices) ? BluetoothService.devices : []
+        h += Math.min(devices.length * rowHeight + 40, 350)
         h += 100 // Footer
         return h + 40
     }
@@ -68,14 +70,14 @@ PanelWindow {
         }
     }
 
-    // --- Dynamic Colors from Common ThemeService ---
-    readonly property color cBg: ThemeService.backgroundDark
-    readonly property color cFg: ThemeService.text
-    readonly property color cAccent: ThemeService.accent
-    readonly property color cSurface: ThemeService.surface_variant
-    readonly property color cRed: ThemeService.error
-    readonly property color cGreen: ThemeService.success
-    readonly property color cDim: ThemeService.text_dim
+    // --- Dynamic Colors from Common ThemeService (Safe Access) ---
+    readonly property color cBg: (typeof ThemeService !== "undefined" && ThemeService.backgroundDark) ? ThemeService.backgroundDark : "#1e1e2e"
+    readonly property color cFg: (typeof ThemeService !== "undefined" && ThemeService.text) ? ThemeService.text : "#cdd6f4"
+    readonly property color cAccent: (typeof ThemeService !== "undefined" && ThemeService.accent) ? ThemeService.accent : "#cba6f7"
+    readonly property color cSurface: (typeof ThemeService !== "undefined" && ThemeService.surface_variant) ? ThemeService.surface_variant : "#313244"
+    readonly property color cRed: (typeof ThemeService !== "undefined" && ThemeService.error) ? ThemeService.error : "#f38ba8"
+    readonly property color cGreen: (typeof ThemeService !== "undefined" && ThemeService.success) ? ThemeService.success : "#a6e3a1"
+    readonly property color cDim: (typeof ThemeService !== "undefined" && ThemeService.text_dim) ? ThemeService.text_dim : Qt.rgba(0.8, 0.8, 0.9, 0.4)
 
     Item {
         anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right
@@ -127,7 +129,7 @@ PanelWindow {
                     RowLayout {
                         id: wsRow; spacing: 6
                         Repeater {
-                            model: WorkspaceService.workspaces
+                            model: (typeof WorkspaceService !== "undefined" && WorkspaceService.workspaces) ? WorkspaceService.workspaces : []
                             delegate: Rectangle {
                                 width: modelData.id === WorkspaceService.activeId ? 18 : 8
                                 height: 8; radius: 4
@@ -186,13 +188,13 @@ PanelWindow {
                         color: wifiMenuOpen ? Qt.rgba(cAccent.r, cAccent.g, cAccent.b, 0.15) : "transparent"
                         Text {
                             anchors.centerIn: parent
-                            text: QuickSettingsService.wifiEnabled ? "" : "󰖪"
-                            color: QuickSettingsService.wifiEnabled ? (wifiMenuOpen ? cAccent : cFg) : cRed
+                            text: (typeof QuickSettingsService !== "undefined" && QuickSettingsService.wifiEnabled) ? "" : "󰖪"
+                            color: (typeof QuickSettingsService !== "undefined" && QuickSettingsService.wifiEnabled) ? (wifiMenuOpen ? cAccent : cFg) : cRed
                             font.pixelSize: 14; font.family: "Symbols Nerd Font"
                         }
                         MouseArea {
                             anchors.fill: parent
-                            onClicked: { wifiMenuOpen = !wifiMenuOpen; if (wifiMenuOpen) { powerMenuOpen = false; bluetoothMenuOpen = false; NetworkService.scan() } }
+                            onClicked: { wifiMenuOpen = !wifiMenuOpen; if (wifiMenuOpen) { powerMenuOpen = false; bluetoothMenuOpen = false; if (typeof NetworkService !== "undefined") NetworkService.scan() } }
                         }
                     }
 
@@ -201,53 +203,51 @@ PanelWindow {
                         color: bluetoothMenuOpen ? Qt.rgba(cAccent.r, cAccent.g, cAccent.b, 0.15) : "transparent"
                         Text {
                             anchors.centerIn: parent
-                            text: BluetoothService.powered ? "󰂯" : "󰂲"
-                            color: BluetoothService.powered ? (bluetoothMenuOpen ? cAccent : cFg) : cRed
+                            text: (typeof BluetoothService !== "undefined" && BluetoothService.powered) ? "󰂯" : "󰂲"
+                            color: (typeof BluetoothService !== "undefined" && BluetoothService.powered) ? (bluetoothMenuOpen ? cAccent : cFg) : cRed
                             font.pixelSize: 16; font.family: "Symbols Nerd Font"
                         }
                         MouseArea {
                             anchors.fill: parent
-                            onClicked: { bluetoothMenuOpen = !bluetoothMenuOpen; if (bluetoothMenuOpen) { powerMenuOpen = false; wifiMenuOpen = false; BluetoothService.scan() } }
+                            onClicked: { bluetoothMenuOpen = !bluetoothMenuOpen; if (bluetoothMenuOpen) { powerMenuOpen = false; wifiMenuOpen = false; if (typeof BluetoothService !== "undefined") BluetoothService.scan() } }
                         }
                     }
 
                     RowLayout {
                         spacing: 6
-                        Text { text: " " + Math.round(ResourceService.cpu) + "%"; color: cFg; font.pixelSize: 9; font.bold: true }
-                        Text { text: " " + Math.round(ResourceService.ram) + "%"; color: cFg; font.pixelSize: 9; font.bold: true }
+                        Text { text: " " + Math.round(typeof ResourceService !== "undefined" ? ResourceService.cpu : 0) + "%"; color: cFg; font.pixelSize: 9; font.bold: true }
+                        Text { text: " " + Math.round(typeof ResourceService !== "undefined" ? ResourceService.ram : 0) + "%"; color: cFg; font.pixelSize: 9; font.bold: true }
                     }
 
                     RowLayout {
                         spacing: 4
                         Text {
-                            text: QuickSettingsService.isCharging ? "" : ""
-                            color: QuickSettingsService.isCharging ? cGreen : cAccent; font.pixelSize: 14
+                            text: (typeof QuickSettingsService !== "undefined" && QuickSettingsService.isCharging) ? "" : ""
+                            color: (typeof QuickSettingsService !== "undefined" && QuickSettingsService.isCharging) ? cGreen : cAccent; font.pixelSize: 14
                         }
-                        Text { text: QuickSettingsService.batteryLevel + "%"; color: cFg; font.bold: true; font.pixelSize: 10 }
+                        Text { text: (typeof QuickSettingsService !== "undefined" ? QuickSettingsService.batteryLevel : 0) + "%"; color: cFg; font.bold: true; font.pixelSize: 10 }
                     }
 
                     Rectangle {
                         width: 26; height: 26; radius: 13
-                        readonly property color activeColor:
-                            PowerProfileService.activeProfile === "performance" ? cRed :
-                            PowerProfileService.activeProfile === "power-saver" ? cGreen : cAccent
-
-                        color: {
-                            var color = PowerProfileService.activeProfile === "performance" ? cRed :
-                                       PowerProfileService.activeProfile === "power-saver" ? cGreen : cAccent;
-                            powerMenuOpen ? Qt.rgba(color.r, color.g, color.b, 0.15) : "transparent"
+                        readonly property color activeColor: {
+                            if (typeof PowerProfileService === "undefined") return cAccent
+                            return PowerProfileService.activeProfile === "performance" ? cRed :
+                                   PowerProfileService.activeProfile === "power-saver" ? cGreen : cAccent
                         }
+
+                        color: powerMenuOpen ? Qt.rgba(activeColor.r, activeColor.g, activeColor.b, 0.15) : "transparent"
                         Text {
                             anchors.centerIn: parent
                             text: {
+                                if (typeof PowerProfileService === "undefined") return "󰾅"
                                 if (PowerProfileService.activeProfile === "performance") return "󰓅"
                                 if (PowerProfileService.activeProfile === "power-saver") return "󰾆"
                                 return "󰾅"
                             }
                             color: {
-                                var color = PowerProfileService.activeProfile === "performance" ? cRed :
-                                           PowerProfileService.activeProfile === "power-saver" ? cGreen : cAccent;
-                                powerMenuOpen ? color : (PowerProfileService.activeProfile !== "balanced" ? color : cFg)
+                                if (typeof PowerProfileService === "undefined") return cFg
+                                powerMenuOpen ? activeColor : (PowerProfileService.activeProfile !== "balanced" ? activeColor : cFg)
                             }
                             font.pixelSize: 16; font.family: "Symbols Nerd Font"
                         }
@@ -257,12 +257,11 @@ PanelWindow {
                         }
                     }
 
-                    // Power Button
+                    // Settings Button (Replaced Power Button)
                     Rectangle {
                         width: 24; height: 24; radius: 12; color: cSurface
-                        Text { anchors.centerIn: parent; text: ""; color: cRed; font.pixelSize: 12 }
-                        MouseArea { anchors.fill: parent; onClicked: Quickshell.execDetached(["sh", "-c", "~/.config/hypr/scripts/powermenu.sh"])
-                        }
+                        Text { anchors.centerIn: parent; text: "󰒓"; color: cAccent; font.pixelSize: 12; font.family: "Symbols Nerd Font" }
+                        MouseArea { anchors.fill: parent; onClicked: Quickshell.execDetached(["qs", "-c", "settings"]) }
                     }
                 }
             }
@@ -291,9 +290,9 @@ PanelWindow {
                     Text { text: "ETHERNET NETWORKS"; color: cDim; font.bold: true; font.pixelSize: 10 }
                     RowLayout {
                         Layout.fillWidth: true; height: 30
-                        Text { text: "󰈀"; color: NetworkService.ethernetStatus === "Connected" ? cGreen : cDim; font.pixelSize: 16; font.family: "Symbols Nerd Font" }
+                        Text { text: "󰈀"; color: (typeof NetworkService !== "undefined" && NetworkService.ethernetStatus === "Connected") ? cGreen : cDim; font.pixelSize: 16; font.family: "Symbols Nerd Font" }
                         Text { text: "Ethernet"; color: cFg; font.pixelSize: 13; Layout.fillWidth: true }
-                        Text { text: NetworkService.ethernetStatus; color: NetworkService.ethernetStatus === "Connected" ? cGreen : cDim; font.pixelSize: 11; font.bold: true }
+                        Text { text: (typeof NetworkService !== "undefined" ? NetworkService.ethernetStatus : "Unknown"); color: (typeof NetworkService !== "undefined" && NetworkService.ethernetStatus === "Connected") ? cGreen : cDim; font.pixelSize: 11; font.bold: true }
                     }
                 }
                 Rectangle { Layout.fillWidth: true; height: 1; color: Qt.rgba(1, 1, 1, 0.05) }
@@ -321,12 +320,12 @@ PanelWindow {
                                     font.family: "Symbols Nerd Font"
                                     transformOrigin: Item.Center
                                     RotationAnimation on rotation {
-                                        running: NetworkService.scanning
+                                        running: typeof NetworkService !== "undefined" && NetworkService.scanning
                                         from: 0; to: 360; duration: 1000; loops: Animation.Infinite
                                     }
                                 }
                                 Text {
-                                    text: NetworkService.scanning ? "Scanning..." : "Scan"
+                                    text: (typeof NetworkService !== "undefined" && NetworkService.scanning) ? "Scanning..." : "Scan"
                                     color: cAccent
                                     font.pixelSize: 10
                                     font.bold: true
@@ -334,14 +333,14 @@ PanelWindow {
                             }
                             MouseArea {
                                 anchors.fill: parent
-                                onClicked: NetworkService.scan()
+                                onClicked: if (typeof NetworkService !== "undefined") NetworkService.scan()
                             }
                         }
                     }
 
                     // Show currently connected network
                     Repeater {
-                        model: NetworkService.networks.filter(function(n) { return n.active || n.ssid === NetworkService.activeWifiSsid })
+                        model: (typeof NetworkService !== "undefined" && NetworkService.networks) ? NetworkService.networks.filter(function(n) { return n.active || n.ssid === NetworkService.activeWifiSsid }) : []
                         delegate: Rectangle {
                             Layout.fillWidth: true; height: activeRowHeight; radius: 12; color: Qt.rgba(cAccent.r, cAccent.g, cAccent.b, 0.1)
                             RowLayout {
@@ -369,15 +368,15 @@ PanelWindow {
 
                     ListView {
                         id: wifiList; Layout.fillWidth: true; Layout.fillHeight: true; clip: true; spacing: 4
-                        model: NetworkService.networks.filter(function(n) { return !n.active && n.ssid !== NetworkService.activeWifiSsid })
+                        model: (typeof NetworkService !== "undefined" && NetworkService.networks) ? NetworkService.networks.filter(function(n) { return !n.active && n.ssid !== NetworkService.activeWifiSsid }) : []
 
                         Text {
                             anchors.centerIn: parent; text: "No networks found"; color: cDim; font.pixelSize: 12
-                            visible: wifiList.count === 0 && !NetworkService.scanning
+                            visible: wifiList.count === 0 && (typeof NetworkService !== "undefined" && !NetworkService.scanning)
                         }
                         Text {
                             anchors.centerIn: parent; text: "Scanning..."; color: cAccent; font.pixelSize: 12
-                            visible: wifiList.count === 0 && NetworkService.scanning
+                            visible: wifiList.count === 0 && (typeof NetworkService !== "undefined" && NetworkService.scanning)
                         }
 
                         delegate: Rectangle {
@@ -435,8 +434,8 @@ PanelWindow {
                         Layout.fillWidth: true; height: 32
                         Text { text: "Enable Networking"; color: cFg; font.pixelSize: 12; Layout.fillWidth: true }
                         Switch {
-                            checked: NetworkService.networkingEnabled
-                            onClicked: NetworkService.toggleNetworking()
+                            checked: typeof NetworkService !== "undefined" && NetworkService.networkingEnabled
+                            onClicked: if (typeof NetworkService !== "undefined") NetworkService.toggleNetworking()
                             scale: 0.8
                         }
                     }
@@ -444,8 +443,8 @@ PanelWindow {
                         Layout.fillWidth: true; height: 32
                         Text { text: "Enable Wi-Fi"; color: cFg; font.pixelSize: 12; Layout.fillWidth: true }
                         Switch {
-                            checked: NetworkService.wifiEnabled
-                            onClicked: NetworkService.toggleWifi()
+                            checked: typeof NetworkService !== "undefined" && NetworkService.wifiEnabled
+                            onClicked: if (typeof NetworkService !== "undefined") NetworkService.toggleWifi()
                             scale: 0.8
                         }
                     }
@@ -480,7 +479,7 @@ PanelWindow {
                             Text { text: "󰒓"; color: cAccent; font.pixelSize: 14; font.family: "Symbols Nerd Font" }
                             Text { text: "Edit Connections"; color: cFg; font.pixelSize: 12 }
                         }
-                        MouseArea { id: hoverEdit; anchors.fill: parent; onClicked: NetworkService.openEditor() }
+                        MouseArea { id: hoverEdit; anchors.fill: parent; onClicked: if (typeof NetworkService !== "undefined") NetworkService.openEditor() }
                     }
                 }
             }
@@ -525,12 +524,12 @@ PanelWindow {
                                     font.family: "Symbols Nerd Font"
                                     transformOrigin: Item.Center
                                     RotationAnimation on rotation {
-                                        running: BluetoothService.scanning
+                                        running: typeof BluetoothService !== "undefined" && BluetoothService.scanning
                                         from: 0; to: 360; duration: 1000; loops: Animation.Infinite
                                     }
                                 }
                                 Text {
-                                    text: BluetoothService.scanning ? "Scanning..." : "Scan"
+                                    text: (typeof BluetoothService !== "undefined" && BluetoothService.scanning) ? "Scanning..." : "Scan"
                                     color: cAccent
                                     font.pixelSize: 10
                                     font.bold: true
@@ -538,7 +537,7 @@ PanelWindow {
                             }
                             MouseArea {
                                 anchors.fill: parent
-                                onClicked: BluetoothService.scan()
+                                onClicked: if (typeof BluetoothService !== "undefined") BluetoothService.scan()
                             }
                         }
                     }
@@ -552,15 +551,15 @@ PanelWindow {
 
                     ListView {
                         id: btList; Layout.fillWidth: true; Layout.fillHeight: true; clip: true; spacing: 4
-                        model: BluetoothService.devices
+                        model: (typeof BluetoothService !== "undefined" && BluetoothService.devices) ? BluetoothService.devices : []
 
                         Text {
                             anchors.centerIn: parent; text: "No devices found"; color: cDim; font.pixelSize: 12
-                            visible: btList.count === 0 && !BluetoothService.scanning
+                            visible: btList.count === 0 && (typeof BluetoothService !== "undefined" && !BluetoothService.scanning)
                         }
                         Text {
                             anchors.centerIn: parent; text: "Scanning..."; color: cAccent; font.pixelSize: 12
-                            visible: btList.count === 0 && BluetoothService.scanning
+                            visible: btList.count === 0 && (typeof BluetoothService !== "undefined" && BluetoothService.scanning)
                         }
 
                         delegate: Rectangle {
@@ -578,8 +577,10 @@ PanelWindow {
                             MouseArea {
                                 id: hoverBt; anchors.fill: parent
                                 onClicked: {
-                                    if (modelData.connected) BluetoothService.disconnect(modelData.mac)
-                                    else BluetoothService.connect(modelData.mac)
+                                    if (typeof BluetoothService !== "undefined") {
+                                        if (modelData.connected) BluetoothService.disconnect(modelData.mac)
+                                        else BluetoothService.connect(modelData.mac)
+                                    }
                                 }
                             }
                         }
@@ -596,8 +597,8 @@ PanelWindow {
                         Layout.fillWidth: true; height: 32
                         Text { text: "Enable Bluetooth"; color: cFg; font.pixelSize: 12; Layout.fillWidth: true }
                         Switch {
-                            checked: BluetoothService.powered
-                            onClicked: BluetoothService.togglePower()
+                            checked: typeof BluetoothService !== "undefined" && BluetoothService.powered
+                            onClicked: if (typeof BluetoothService !== "undefined") BluetoothService.togglePower()
                             scale: 0.8
                         }
                     }
@@ -609,7 +610,7 @@ PanelWindow {
                             Text { text: "󰒓"; color: cAccent; font.pixelSize: 14; font.family: "Symbols Nerd Font" }
                             Text { text: "Bluetooth Manager"; color: cFg; font.pixelSize: 12 }
                         }
-                        MouseArea { id: hoverBtMan; anchors.fill: parent; onClicked: BluetoothService.openManager() }
+                        MouseArea { id: hoverBtMan; anchors.fill: parent; onClicked: if (typeof BluetoothService !== "undefined") BluetoothService.openManager() }
                     }
                 }
             }
@@ -633,27 +634,28 @@ PanelWindow {
                 anchors.fill: parent; anchors.margins: 20; spacing: 15
                 Text { text: "Power Profiles"; color: cFg; font.bold: true; font.pixelSize: 16; Layout.fillWidth: true }
                 ListView {
-                    id: powerList; Layout.fillWidth: true; Layout.fillHeight: true; clip: true; model: PowerProfileService.profiles; spacing: 10
+                    id: powerList; Layout.fillWidth: true; Layout.fillHeight: true; clip: true; model: (typeof PowerProfileService !== "undefined" && PowerProfileService.profiles) ? PowerProfileService.profiles : []; spacing: 10
                     delegate: Rectangle {
                         width: powerList.width; height: 46; radius: 14
                         readonly property color profileColor: {
+                            if (typeof PowerProfileService === "undefined") return cAccent
                             if (modelData === "performance") return cRed
                             if (modelData === "power-saver") return cGreen
                             return cAccent
                         }
-                        color: (PowerProfileService.activeProfile === modelData) ? Qt.rgba(profileColor.r, profileColor.g, profileColor.b, 0.15) : (hoverHandlerPower.hovered ? cSurface : "transparent")
-                        border.color: (PowerProfileService.activeProfile === modelData) ? Qt.rgba(profileColor.r, profileColor.g, profileColor.b, 0.4) : "transparent"
+                        color: (typeof PowerProfileService !== "undefined" && PowerProfileService.activeProfile === modelData) ? Qt.rgba(profileColor.r, profileColor.g, profileColor.b, 0.15) : (hoverHandlerPower.hovered ? cSurface : "transparent")
+                        border.color: (typeof PowerProfileService !== "undefined" && PowerProfileService.activeProfile === modelData) ? Qt.rgba(profileColor.r, profileColor.g, profileColor.b, 0.4) : "transparent"
                         border.width: 1
                         RowLayout {
                             anchors.fill: parent; anchors.margins: 12; spacing: 15
                             Text {
                                 text: { if (modelData === "performance") return "󰓅"; if (modelData === "power-saver") return "󰾆"; return "󰾅" }
-                                color: (PowerProfileService.activeProfile === modelData) ? profileColor : cFg; font.pixelSize: 22; font.family: "Symbols Nerd Font"
+                                color: (typeof PowerProfileService !== "undefined" && PowerProfileService.activeProfile === modelData) ? profileColor : cFg; font.pixelSize: 22; font.family: "Symbols Nerd Font"
                             }
-                            Text { text: modelData.charAt(0).toUpperCase() + modelData.slice(1); color: (PowerProfileService.activeProfile === modelData) ? profileColor : cFg; font.bold: PowerProfileService.activeProfile === modelData; font.pixelSize: 14; Layout.fillWidth: true }
-                            Text { visible: PowerProfileService.activeProfile === modelData; text: "󰄬"; color: profileColor; font.pixelSize: 16; font.family: "Symbols Nerd Font" }
+                            Text { text: modelData.charAt(0).toUpperCase() + modelData.slice(1); color: (typeof PowerProfileService !== "undefined" && PowerProfileService.activeProfile === modelData) ? profileColor : cFg; font.bold: (typeof PowerProfileService !== "undefined" && PowerProfileService.activeProfile === modelData); font.pixelSize: 14; Layout.fillWidth: true }
+                            Text { visible: (typeof PowerProfileService !== "undefined" && PowerProfileService.activeProfile === modelData); text: "󰄬"; color: profileColor; font.pixelSize: 16; font.family: "Symbols Nerd Font" }
                         }
-                        MouseArea { anchors.fill: parent; onClicked: { PowerProfileService.setProfile(modelData); powerMenuOpen = false } }
+                        MouseArea { anchors.fill: parent; onClicked: { if (typeof PowerProfileService !== "undefined") { PowerProfileService.setProfile(modelData); powerMenuOpen = false } } }
                         HoverHandler { id: hoverHandlerPower }
                     }
                 }

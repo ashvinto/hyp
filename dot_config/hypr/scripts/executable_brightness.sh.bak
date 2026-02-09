@@ -29,7 +29,7 @@ change_backlight() {
 
 	local sw_bright=100
 	if [ -f "$state_file" ]; then
-		sw_bright=$(grep "DIM_VAL=" "$state_file" | cut -d= -f2)
+		sw_bright=$(grep "DIM_LEVEL=" "$state_file" | cut -d= -f2)
 		[ -z "$sw_bright" ] && sw_bright=100
 	fi
 
@@ -37,7 +37,7 @@ change_backlight() {
 		if (( sw_bright < 100 )); then
 			sw_bright=$((sw_bright + 10))
             if (( sw_bright > 100 )); then sw_bright=100; fi
-            "$manager" dim "$sw_bright"
+            "$manager" --dim "$sw_bright"
             if (( sw_bright == 100 )); then notify-send -e -u low "Screen" "Software Dimming Disabled"
             else notify-send -e -u low "Screen" "Software Brightness: ${sw_bright}%"; fi
 			return
@@ -47,7 +47,7 @@ change_backlight() {
 		if (( current_brightness <= 1 )); then
 			if (( sw_bright > 10 )); then
 				sw_bright=$((sw_bright - 10))
-                "$manager" dim "$sw_bright"
+                "$manager" --dim "$sw_bright"
 				notify-send -e -u low "Screen" "Software Brightness: ${sw_bright}%"
 				return
 			fi

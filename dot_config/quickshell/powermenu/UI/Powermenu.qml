@@ -9,7 +9,6 @@ import "../Services"
 PanelWindow {
     id: root
 
-    // Take full screen for the dimming effect, but only interact with the right side
     anchors { top: true; bottom: true; left: true; right: true }
     color: "transparent"
 
@@ -20,82 +19,189 @@ PanelWindow {
     property bool active: false
     Component.onCompleted: active = true
 
-    function close() { active = false; exitTimer.start() }
-    Timer { id: exitTimer; interval: 350; onTriggered: Qt.quit() }
+    function close() { 
+        active = false; 
+        exitTimer.start() 
+    }
+    Timer { id: exitTimer; interval: 400; onTriggered: Qt.quit() }
 
     // --- Colors ---
     readonly property color cBg: ThemeService.background
-    readonly property color cCard: Qt.rgba(1, 1, 1, 0.05)
-    //readonly property color cAccent: "#cba6f7"
-    //readonly property color cText: "#cdd6f4"
+    readonly property color cSurface: ThemeService.surface
+    readonly property color cBorder: ThemeService.surface_variant
     readonly property color cAccent: ThemeService.accent
     readonly property color cText: ThemeService.text
-    readonly property color cRed: "#f38ba8"
+    readonly property color cDim: ThemeService.text_dim
+    readonly property color cRed: ThemeService.error
 
-    // 1. Background Dim
+    // 1. Background Dim & Blur
     Rectangle {
         anchors.fill: parent
         color: "black"
-        opacity: active ? 0.4 : 0
-        Behavior on opacity { NumberAnimation { duration: 300 } }
-        MouseArea { anchors.fill: parent; onClicked: root.close() }
-        focus: true; Keys.onEscapePressed: root.close()
+        opacity: active ? 0.6 : 0
+        Behavior on opacity { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
     }
 
-    // 2. Side Panel (Slide in from right)
-    Rectangle {
-        id: sidePanel
-        anchors { top: parent.top; bottom: parent.bottom }
-        width: 120
-        color: cBg
-        border.width: 1; border.color: Qt.rgba(1,1,1,0.1)
+    MouseArea { 
+        anchors.fill: parent
+        onClicked: root.close()
+    }
 
-        // Slide Animation
-        x: active ? parent.width - width : parent.width
-        Behavior on x { NumberAnimation { duration: 400; easing.type: Easing.OutQuart } }
+    // 2. Central Power Card
+    Rectangle {
+        id: powerCard
+        anchors.centerIn: parent
+        width: 620
+        height: 560
+        radius: 40
+        color: cBg
+        border.width: 1
+        border.color: cBorder
+        clip: true
+
+        scale: active ? 1.0 : 0.7
+        opacity: active ? 1.0 : 0
+        rotation: active ? 0 : -3
+        
+        Behavior on scale { NumberAnimation { duration: 500; easing.type: Easing.OutBack } }
+        Behavior on opacity { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
+        Behavior on rotation { NumberAnimation { duration: 600; easing.type: Easing.OutBack } }
 
         ColumnLayout {
-            anchors.fill: parent; anchors.topMargin: 50; anchors.bottomMargin: 50
-            spacing: 30
+            anchors.fill: parent
+            anchors.margins: 45
+            spacing: 35
 
-            // User Avatar (Small, at top)
-            Rectangle {
-                Layout.alignment: Qt.AlignHCenter
-                width: 60; height: 60; radius: 30; clip: true
-                Image { source: "file:///home/zoro/.face"; anchors.fill: parent; fillMode: Image.PreserveAspectCrop }
+            // User Info Header
+            RowLayout {
+                id: header
+                Layout.fillWidth: true
+                spacing: 20
+                opacity: active ? 1.0 : 0
+                Layout.topMargin: active ? 0 : -20
+                
+                Behavior on opacity { 
+                    SequentialAnimation {
+                        PauseAnimation { duration: 100 }
+                        NumberAnimation { duration: 500 }
+                    }
+                }
+                Behavior on Layout.topMargin { 
+                    SequentialAnimation {
+                        PauseAnimation { duration: 100 }
+                        NumberAnimation { duration: 500; easing.type: Easing.OutCubic }
+                    }
+                }
+
+                Rectangle {
+                    width: 80; height: 80; radius: 40
+                    color: cAccent
+                    clip: true
+                    
+                    Image {
+                        source: (typeof ConfigService !== "undefined") ? ConfigService.profileIcon : "file:///home/zoro/.face"
+                        anchors.fill: parent
+                        fillMode: Image.PreserveAspectCrop
+                        onStatusChanged: if (status == Image.Error) fallbackIcon.visible = true
+                    }
+                    Text {
+                        id: fallbackIcon
+                        anchors.centerIn: parent
+                        text: SystemService.user[0].toUpperCase()
+                        font.bold: true; font.pixelSize: 32; color: "black"
+                        visible: false
+                    }
+                    
+                    // Profile Glow
+                    Rectangle {
+                        anchors.fill: parent; radius: 40; color: "transparent"
+                        border.color: cAccent; border.width: 2; opacity: 0.5
+                    }
+                }
+
+                ColumnLayout {
+                    spacing: 4
+                    Text {
+                        text: SystemService.greeting + ", " + SystemService.user
+                        color: cText
+                        font.pixelSize: 26; font.bold: true
+                    }
+                    Text {
+                        text: "System Uptime: " + SystemService.uptime
+                        color: cDim
+                        font.pixelSize: 14
+                    }
+                }
+                
+                Item { Layout.fillWidth: true }
+                
+                // Close button top right
+                Rectangle {
+                    width: 44; height: 44; radius: 22
+                    color: closeHover.hovered ? cAccent : cSurface
+                    border.color: closeHover.hovered ? "transparent" : cBorder
+                    
+                    Text { 
+                        anchors.centerIn: parent
+                        text: "󰅖"
+                        color: closeHover.hovered ? "black" : cText
+                        font.pixelSize: 20
+                        font.family: "Symbols Nerd Font"
+                    }
+                    
+                    MouseArea { id: closeArea; anchors.fill: parent; onClicked: root.close() }
+                    HoverHandler { id: closeHover }
+                    
+                    Behavior on color { ColorAnimation { duration: 200 } }
+                    scale: closeHover.hovered ? 1.1 : 1.0
+                    Behavior on scale { NumberAnimation { duration: 200 } }
+                }
             }
 
-            Item { Layout.fillHeight: true }
+            Rectangle { 
+                Layout.fillWidth: true; height: 1; color: cBorder; opacity: 0.3 
+                scale: active ? 1.0 : 0
+                Behavior on scale { 
+                    SequentialAnimation {
+                        PauseAnimation { duration: 200 }
+                        NumberAnimation { duration: 600; easing.type: Easing.OutCubic }
+                    }
+                }
+            }
 
-            // Actions
-            PowerBtn { icon: "󰌾"; label: "Lock"; color: cAccent; action: () => Quickshell.execDetached(["hyprlock"]) }
-            PowerBtn { icon: "󰤄"; label: "Sleep"; color: "#89b4fa"; action: () => Quickshell.execDetached(["systemctl", "suspend"]) }
-            PowerBtn { icon: "󰑓"; label: "Reboot"; color: "#fab387"; action: () => Quickshell.execDetached(["reboot"]) }
-            PowerBtn { icon: "󰐥"; label: "Power"; color: cRed; action: () => Quickshell.execDetached(["shutdown", "now"]) }
+            // Grid of Actions
+            GridLayout {
+                columns: 3
+                rowSpacing: 30
+                columnSpacing: 30
+                Layout.alignment: Qt.AlignHCenter
+                Layout.fillHeight: true
 
-            Item { Layout.fillHeight: true }
-
-            // Close
-            PowerBtn { icon: "󰅖"; label: "Close"; color: cText; action: () => root.close() }
+                PowerBtn { 
+                    index: 0; icon: "󰌾"; label: "Lock"; btnColor: cAccent; active: root.active; closeAction: root.close
+                    action: () => Quickshell.execDetached(["/home/zoro/.config/hypr/scripts/lock.sh"]) 
+                }
+                PowerBtn { 
+                    index: 1; icon: "󰍃"; label: "Logout"; btnColor: "#fab387"; active: root.active; closeAction: root.close
+                    action: () => Quickshell.execDetached(["hyprctl", "dispatch", "exit"]) 
+                }
+                PowerBtn { 
+                    index: 2; icon: "󰤄"; label: "Sleep"; btnColor: "#89b4fa"; active: root.active; closeAction: root.close
+                    action: () => Quickshell.execDetached(["systemctl", "suspend"]) 
+                }
+                PowerBtn { 
+                    index: 3; icon: "󰒲"; label: "Hibernate"; btnColor: "#b4befe"; active: root.active; closeAction: root.close
+                    action: () => Quickshell.execDetached(["systemctl", "hibernate"]) 
+                }
+                PowerBtn { 
+                    index: 4; icon: "󰑓"; label: "Reboot"; btnColor: "#a6e3a1"; active: root.active; closeAction: root.close
+                    action: () => Quickshell.execDetached(["reboot"]) 
+                }
+                PowerBtn { 
+                    index: 5; icon: "󰐥"; label: "Shutdown"; btnColor: cRed; active: root.active; closeAction: root.close
+                    action: () => Quickshell.execDetached(["shutdown", "now"]) 
+                }
+            }
         }
-    }
-
-    component PowerBtn: ColumnLayout {
-        property string icon: ""; property string label: ""; property color color: cText; property var action: null
-        spacing: 8
-        Layout.alignment: Qt.AlignHCenter
-
-        Rectangle {
-            width: 70; height: 70; radius: 20; color: Qt.rgba(1,1,1,0.03)
-            border.color: hover.hovered ? parent.color : "transparent"; border.width: 1
-
-            Text { anchors.centerIn: parent; text: icon; color: parent.parent.color; font.pixelSize: 32; font.family: "Symbols Nerd Font" }
-            MouseArea { anchors.fill: parent; onClicked: { if (parent.parent.action) parent.parent.action(); if (label !== "Close") root.close() } }
-            HoverHandler { id: hover }
-
-            scale: hover.hovered ? 1.05 : 1.0
-            Behavior on scale { NumberAnimation { duration: 200 } }
-        }
-        Text { text: label; color: cText; font.pixelSize: 11; font.bold: true; Layout.alignment: Qt.AlignHCenter; opacity: hover.hovered ? 1 : 0.6 }
     }
 }

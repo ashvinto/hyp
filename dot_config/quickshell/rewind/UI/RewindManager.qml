@@ -5,282 +5,179 @@ import QtQuick.Effects
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
-import "../Services" as Services
+import "../../Common/Services" as Common
+import "../Services" as Local
 
 PanelWindow {
     id: root
     
-    anchors.top: true; anchors.bottom: true; anchors.left: true; anchors.right: true
+    anchors { top: true; bottom: true; left: true; right: true }
     color: "transparent"
     
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
     WlrLayershell.namespace: "rewind-utility"
 
-    // Theme Colors (Standalone)
-    readonly property color cBg: Services.ThemeService.background
-    readonly property color cSurface: Services.ThemeService.surface
-    readonly property color cAccent: Services.ThemeService.accent
-    readonly property color cText: Services.ThemeService.text
-    readonly property color cDim: Services.ThemeService.text_dim
-    readonly property color cError: Services.ThemeService.error || "#ff4d4d"
-    readonly property color cSuccess: Services.ThemeService.success || "#4dff4d"
+    readonly property color cBg: (typeof Common.ThemeService !== "undefined" && Common.ThemeService.backgroundDark) ? Common.ThemeService.backgroundDark : "#11111b"
+    readonly property color cSurface: (typeof Common.ThemeService !== "undefined" && Common.ThemeService.surface) ? Common.ThemeService.surface : "#1e1e2e"
+    readonly property color cAccent: (typeof Common.ThemeService !== "undefined" && Common.ThemeService.accent) ? Common.ThemeService.accent : "#cba6f7"
+    readonly property color cText: (typeof Common.ThemeService !== "undefined" && Common.ThemeService.text) ? Common.ThemeService.text : "#cdd6f4"
+    readonly property color cDim: (typeof Common.ThemeService !== "undefined" && Common.ThemeService.text_dim) ? Common.ThemeService.text_dim : "#6c7086"
+    readonly property color cError: "#f38ba8"
 
     Component.onCompleted: {
-        // Start the monitor if not running
-        Quickshell.execDetached(["sh", "-c", "pgrep -f fs_monitor.py || python3 " + Quickshell.env("HOME") + "/.config/quickshell/rewind/scripts/fs_monitor.py &"])
+        console.log("[Rewind] UI Initialized")
         refreshData()
     }
 
     function refreshData() {
-        fsLoader.running = true
+        console.log("[Rewind] Refreshing all data...")
+        sessionLoader.running = true
         pacmanLoader.running = true
     }
 
+    function saveCurrentSession() {
+        console.log("[Rewind] Triggering session save...")
+        Quickshell.execDetached(["bash", "/home/zoro/.config/hypr/scripts/session-manager.sh", "save"])
+        refreshTimer.start()
+    }
+    Timer { id: refreshTimer; interval: 1000; onTriggered: sessionLoader.running = true }
+
     Rectangle {
-        anchors.fill: parent
-        color: "#66000000"
+        anchors.fill: parent; color: "#88000000"
         MouseArea { anchors.fill: parent; onClicked: Qt.quit() }
-        z: -1
     }
 
     Rectangle {
+        id: container
         anchors.centerIn: parent
-        width: 1000
-        height: 750
+        width: 1100; height: 750
         color: Qt.rgba(cBg.r, cBg.g, cBg.b, 0.95)
-        radius: 24
-        border.color: Qt.rgba(1, 1, 1, 0.1)
-        border.width: 1
-        clip: true
+        radius: 32; border.color: Qt.rgba(1, 1, 1, 0.1); border.width: 1; clip: true
 
-        MultiEffect {
-            anchors.fill: parent; source: parent; blurEnabled: true; blur: 1.0; z: -1
-        }
+        layer.enabled: true
+        layer.effect: MultiEffect { shadowEnabled: true; shadowBlur: 0.8; shadowOpacity: 0.5; shadowVerticalOffset: 12 }
 
         ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: 30
-            spacing: 20
+            anchors.fill: parent; anchors.margins: 40; spacing: 20
 
             // Header
             RowLayout {
-                Layout.fillWidth: true
-                Text { 
-                    text: "⏪"; color: cAccent; font.pixelSize: 24
-                }
-                Text { 
-                    text: "Rewind History"; color: cText; font.bold: true; font.pixelSize: 20; Layout.fillWidth: true 
-                }
+                Layout.fillWidth: true; spacing: 15
+                Text { text: "󰁯"; color: cAccent; font.pixelSize: 32; font.family: "Symbols Nerd Font" }
+                Text { text: "REWIND HUB"; color: cText; font.bold: true; font.pixelSize: 22; font.letterSpacing: 2; Layout.fillWidth: true }
                 
                 Button {
-                    text: "🔄 Refresh"
-                    onClicked: refreshData()
-                    background: Rectangle { color: "transparent"; border.color: cDim; radius: 8; border.width: 1 }
-                    contentItem: Text { text: parent.text; color: cDim; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font.bold: true; padding: 10 }
+                    text: bar.currentIndex === 0 ? "󰄬 SAVE SESSION" : "󰑐 REFRESH PACKAGES"
+                    onClicked: bar.currentIndex === 0 ? saveCurrentSession() : pacmanLoader.running = true
+                    background: Rectangle { color: parent.hovered ? Qt.rgba(cAccent.r, cAccent.g, cAccent.b, 0.1) : "transparent"; radius: 10; border.color: cAccent; border.width: 1 }
+                    contentItem: Text { text: parent.text; color: cAccent; font.bold: true; padding: 10; font.family: "Symbols Nerd Font" }
                 }
-
-                Button {
-                    text: "Close"
-                    onClicked: Qt.quit()
-                    background: Rectangle { color: cSurface; radius: 8 }
-                    contentItem: Text { text: parent.text; color: cText; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font.bold: true; padding: 10 }
-                }
+                
+                IconButton { text: "󰅖"; onClicked: Qt.quit(); iconColor: cError }
             }
 
             TabBar {
-                id: bar
-                Layout.fillWidth: true
-                background: Rectangle { color: "transparent" }
-                
-                TabButton {
-                    text: "📂 File Monitor"
-                    width: implicitWidth + 40
-                    contentItem: Text { 
-                        text: parent.text
-                        color: parent.checked ? cAccent : cDim
-                        font.bold: parent.checked
-                        horizontalAlignment: Text.AlignHCenter
-                        font.pixelSize: 14
-                    }
-                    background: Rectangle { 
-                        color: parent.checked ? Qt.rgba(cAccent.r, cAccent.g, cAccent.b, 0.1) : "transparent"
-                        radius: 8
-                    }
-                }
-                
-                TabButton {
-                    text: "📦 System Changes"
-                    width: implicitWidth + 40
-                    contentItem: Text { 
-                        text: parent.text
-                        color: parent.checked ? cAccent : cDim
-                        font.bold: parent.checked
-                        horizontalAlignment: Text.AlignHCenter
-                        font.pixelSize: 14
-                    }
-                    background: Rectangle { 
-                        color: parent.checked ? Qt.rgba(cAccent.r, cAccent.g, cAccent.b, 0.1) : "transparent"
-                        radius: 8
-                    }
-                }
+                id: bar; Layout.fillWidth: true; background: null
+                TabButton { text: "󱊄 SESSIONS"; width: 180 }
+                TabButton { text: "󰏖 PACKAGES"; width: 180 }
             }
 
             StackLayout {
-                currentIndex: bar.currentIndex
-                Layout.fillWidth: true
-                Layout.fillHeight: true
+                currentIndex: bar.currentIndex; Layout.fillWidth: true; Layout.fillHeight: true
                 
-                // --- FILE MONITOR TAB ---
+                // --- SESSIONS TAB ---
                 Item {
-                    ColumnLayout {
-                        anchors.fill: parent
-                        spacing: 10
-
-                        ListView {
-                            id: fsList
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            clip: true
-                            spacing: 8
-                            model: root.fsModel
-                            
-                            ScrollBar.vertical: ScrollBar {
-                                active: true
-                                policy: ScrollBar.AsNeeded
-                            }
-
-                            delegate: Rectangle {
-                                width: fsList.width - 15
-                                height: 70
-                                color: cSurface
-                                radius: 12
-                                border.color: modelData.type === "DELETE" ? Qt.rgba(cError.r, cError.g, cError.b, 0.3) : "transparent"
-                                border.width: 1
-                                
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.margins: 15
-                                    spacing: 15
-                                    
-                                    Text { 
-                                        text: modelData.type === "DELETE" ? "🗑️" : (modelData.type === "CREATE" ? "✨" : "✏️")
-                                        font.pixelSize: 24
+                    ListView {
+                        id: sessionList; anchors.fill: parent; spacing: 12; clip: true; model: root.sessionModel
+                        delegate: Rectangle {
+                            width: sessionList.width - 10; height: 90; radius: 16
+                            color: Qt.rgba(255,255,255,0.03); border.color: Qt.rgba(1,1,1,0.08); border.width: 1
+                            RowLayout {
+                                anchors.fill: parent; anchors.margins: 20; spacing: 20
+                                Rectangle {
+                                    width: 50; height: 50; radius: 12; color: Qt.rgba(cAccent.r, cAccent.g, cAccent.b, 0.1)
+                                    Text { anchors.centerIn: parent; text: "󱊄"; color: cAccent; font.pixelSize: 28; font.family: "Symbols Nerd Font" }
+                                }
+                                ColumnLayout {
+                                    spacing: 4; Layout.fillWidth: true
+                                    Text { text: modelData.time; color: "white"; font.bold: true; font.pixelSize: 15 }
+                                    Text { text: modelData.appCount + " Apps: " + modelData.apps; color: cDim; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true }
+                                }
+                                Button {
+                                    text: "RESTORE"
+                                    onClicked: {
+                                        console.log("[Rewind] Restoring session:", modelData.path)
+                                        Quickshell.execDetached(["bash", "/home/zoro/.config/hypr/scripts/session-manager.sh", "restore", modelData.path])
                                     }
-                                    
-                                    ColumnLayout {
-                                        Layout.fillWidth: true
-                                        spacing: 2
-                                        Text { 
-                                            text: modelData.path.split('/').pop()
-                                            color: modelData.type === "DELETE" ? cError : cText
-                                            font.bold: true 
-                                            font.pixelSize: 15
-                                        }
-                                        Text { 
-                                            text: modelData.path
-                                            color: cDim
-                                            font.pixelSize: 12
-                                            elide: Text.ElideMiddle 
-                                            Layout.fillWidth: true
-                                        }
-                                    }
-
-                                    Text { 
-                                        text: modelData.time.replace("T", " ").split(".")[0]
-                                        color: cDim
-                                        font.pixelSize: 11
-                                    }
+                                    background: Rectangle { color: parent.hovered ? cAccent : "transparent"; radius: 8; border.color: cAccent; border.width: 1 }
+                                    contentItem: Text { text: parent.text; color: parent.hovered ? "#111" : cAccent; font.bold: true; padding: 8; font.pixelSize: 11 }
                                 }
                             }
                         }
                     }
+                    Text { anchors.centerIn: parent; text: "No sessions saved. Click Save above!"; color: cDim; visible: root.sessionModel.length === 0 }
                 }
 
-                // --- SYSTEM PACKAGES TAB ---
+                // --- PACKAGES TAB ---
                 Item {
-                    ColumnLayout {
-                        anchors.fill: parent
-                        spacing: 10
-                        
-                        ListView {
-                            id: pkgList
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            clip: true
-                            model: root.pkgModel
-                            spacing: 8
-                            
-                            ScrollBar.vertical: ScrollBar {
-                                active: true
-                                policy: ScrollBar.AsNeeded
-                            }
-
-                            delegate: Rectangle {
-                                width: pkgList.width - 15
-                                height: 65
-                                color: cSurface
-                                radius: 12
-                                
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.margins: 15
-                                    spacing: 15
-                                    
-                                    Text { 
-                                        text: modelData.action === "installed" ? "📥" : (modelData.action === "upgraded" ? "⬆️" : "❌")
-                                        font.pixelSize: 20
-                                    }
-                                    
-                                    ColumnLayout {
-                                        Layout.fillWidth: true
-                                        spacing: 2
-                                        Text { text: modelData.package; color: cText; font.bold: true; font.pixelSize: 15 }
-                                        Text { text: modelData.details; color: cDim; font.pixelSize: 12; elide: Text.ElideRight; Layout.fillWidth: true }
-                                    }
-                                    
-                                    Text {
-                                        text: modelData.time
-                                        color: cDim
-                                        font.pixelSize: 11
-                                    }
+                    ListView {
+                        id: pkgList; anchors.fill: parent; spacing: 10; clip: true; 
+                        model: root.pkgModel // ADDED MISSING MODEL BINDING
+                        delegate: Rectangle {
+                            width: pkgList.width - 10; height: 70; radius: 14
+                            color: Qt.rgba(255,255,255,0.03); border.color: Qt.rgba(1,1,1,0.08); border.width: 1
+                            RowLayout {
+                                anchors.fill: parent; anchors.margins: 15; spacing: 15
+                                Text { 
+                                    text: modelData.action === "installed" ? "󰏖" : (modelData.action === "removed" ? "󰆴" : "󰚀")
+                                    color: modelData.action === "removed" ? cError : cAccent
+                                    font.pixelSize: 22; font.family: "Symbols Nerd Font" 
                                 }
+                                ColumnLayout {
+                                    spacing: 2; Layout.fillWidth: true
+                                    Text { text: modelData.package; color: "white"; font.bold: true; font.pixelSize: 14 }
+                                    Text { text: modelData.details; color: cDim; font.pixelSize: 10; elide: Text.ElideRight; Layout.fillWidth: true }
+                                }
+                                Text { text: modelData.time.split("T")[0]; color: cDim; font.pixelSize: 10 }
                             }
                         }
                     }
+                    Text { anchors.centerIn: parent; text: "No recent system changes."; color: cDim; visible: root.pkgModel.length === 0 }
                 }
             }
         }
     }
     
-    property var fsModel: []
+    // Components
+    component TabButton: Button {
+        contentItem: Text { text: parent.text; color: parent.checked ? cAccent : cDim; font.bold: parent.checked; font.pixelSize: 13; horizontalAlignment: Text.AlignHCenter }
+        background: Rectangle { color: parent.checked ? Qt.rgba(cAccent.r, cAccent.g, cAccent.b, 0.1) : "transparent"; radius: 10; border.color: parent.checked ? cAccent : "transparent"; border.width: 1 }
+    }
+
+    component IconButton: Rectangle {
+        property string text: ""
+        property color iconColor: cAccent
+        signal clicked()
+        width: 40; height: 40; radius: 12; color: Qt.rgba(255,255,255,0.05)
+        Text { anchors.centerIn: parent; text: parent.text; color: parent.iconColor; font.pixelSize: 20; font.family: "Symbols Nerd Font" }
+        MouseArea { anchors.fill: parent; hoverEnabled: true; onClicked: parent.clicked() }
+    }
+
     property var pkgModel: []
+    property var sessionModel: []
     
     Process {
-        id: fsLoader
-        command: ["cat", Quickshell.env("HOME") + "/.cache/fs_history.json"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                if (text) {
-                    try {
-                        root.fsModel = JSON.parse(text)
-                    } catch (e) { root.fsModel = [] }
-                }
-            }
-        }
+        id: sessionLoader; command: ["bash", "/home/zoro/.config/hypr/scripts/session-manager.sh", "list"]
+        stdout: StdioCollector { onStreamFinished: {
+            if (text) { try { root.sessionModel = JSON.parse(text) } catch(e) { root.sessionModel = [] } }
+        }}
     }
     
     Process {
-        id: pacmanLoader
-        command: ["sh", Quickshell.env("HOME") + "/.config/quickshell/rewind/scripts/pacman_history.sh"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                if (text) {
-                    try {
-                        root.pkgModel = JSON.parse(text)
-                    } catch (e) { root.pkgModel = [] }
-                }
-            }
-        }
+        id: pacmanLoader; command: ["bash", "/home/zoro/.config/quickshell/rewind/scripts/pacman_history.sh"]
+        stdout: StdioCollector { onStreamFinished: {
+            if (text) { try { root.pkgModel = JSON.parse(text) } catch(e) { root.pkgModel = [] } }
+        }}
     }
 }

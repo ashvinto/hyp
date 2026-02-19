@@ -10,8 +10,22 @@ Singleton {
     property bool btEnabled: false
     property bool nightLightEnabled: false
     property bool dndEnabled: false
+    property bool focusModeEnabled: false
+    property bool retroModeEnabled: false
     property int batteryLevel: 0
     property bool isCharging: false
+
+    function toggleFocus() {
+        Quickshell.execDetached(["/home/zoro/.config/hypr/scripts/toggle-focus.sh"])
+        focusModeEnabled = !focusModeEnabled
+        focusModeChecker.running = true
+    }
+
+    function toggleRetro() {
+        Quickshell.execDetached(["/home/zoro/.config/hypr/scripts/toggle-retro.sh"])
+        retroModeEnabled = !retroModeEnabled
+        retroModeChecker.running = true
+    }
 
     function toggleWifi() { 
         Quickshell.execDetached(["sh", "-c", "nmcli radio wifi | grep -q 'enabled' && nmcli radio wifi off || nmcli radio wifi on"])
@@ -42,7 +56,7 @@ Singleton {
         dndChecker.running = true
     }
 
-    function lock() { Quickshell.execDetached(["hyprlock"]) }
+    function lock() { Quickshell.execDetached(["/home/zoro/.config/hypr/scripts/lock.sh"]) }
     function logout() { Quickshell.execDetached(["hyprctl", "dispatch", "exit"]) }
     function shutdown() { Quickshell.execDetached(["shutdown", "now"]) }
     function reboot() { Quickshell.execDetached(["reboot"]) }
@@ -53,6 +67,24 @@ Singleton {
         btChecker.running = false; btChecker.running = true
         nightLightChecker.running = false; nightLightChecker.running = true
         dndChecker.running = false; dndChecker.running = true
+        focusModeChecker.running = false; focusModeChecker.running = true
+        retroModeChecker.running = false; retroModeChecker.running = true
+    }
+
+    Process {
+        id: retroModeChecker
+        command: ["sh", "-c", "[ -f /tmp/retro_mode_active ] && echo 'true' || echo 'false'"]
+        stdout: StdioCollector {
+            onStreamFinished: root.retroModeEnabled = (text && text.trim() === "true")
+        }
+    }
+
+    Process {
+        id: focusModeChecker
+        command: ["sh", "-c", "[ -f /tmp/focus_mode_active ] && echo 'true' || echo 'false'"]
+        stdout: StdioCollector {
+            onStreamFinished: root.focusModeEnabled = (text && text.trim() === "true")
+        }
     }
 
     Process {
@@ -115,6 +147,8 @@ Singleton {
             btChecker.running = true
             nightLightChecker.running = true
             dndChecker.running = true
+            focusModeChecker.running = true
+            retroModeChecker.running = true
         }
     }
 

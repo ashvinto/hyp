@@ -6,7 +6,9 @@ import Quickshell.Io
 Singleton {
     id: root
     property var apps: []
+    property var files: [] 
     property bool loading: false
+    property bool searchingFiles: false
 
     function scan() {
         if (loading) return
@@ -14,64 +16,92 @@ Singleton {
         scanner.running = true
     }
 
+    // --- File Search ---
+    function searchFiles(query) {
+        if (query.length < 2) { files = []; return; }
+        searchingFiles = true
+        fileScanner.command = ["python3", "-c", `
+import os, json, subprocess
+query = "${query}".lower()
+results = []
+cmd = ["find", os.path.expanduser("~"), "-maxdepth", "3", "-not", "-path", '*/.*', "-iname", f"*{query}*"]
+try:
+    output = subprocess.check_output(cmd, stderr=subprocess.DEVNULL, timeout=1).decode().split('\\n')
+    for line in output:
+        if line.strip():
+            results.append({ "name": os.path.basename(line), "path": line, "icon": "file" })
+            if len(results) >= 10: break
+    print(json.dumps(results))
+except: print("[]")
+`.replace("${query}", query)]
+        fileScanner.running = true
+    }
+
+    Process {
+        id: fileScanner
+        stdout: StdioCollector { onStreamFinished: { if (text) files = JSON.parse(text); searchingFiles = false } }
+    }
+
+    // --- Original English Dictionary Lookup ---
+    property string definition: ""
+    property string lastWord: ""
+    
+    Timer {
+        id: debounceTimer
+        interval: 600
+        repeat: false
+        onTriggered: {
+            if (lastWord.length < 2) return
+            definition = "Searching..."
+            var cmd = "curl -s 'https://api.dictionaryapi.dev/api/v2/entries/en/" + lastWord + "' | python3 -c \"import sys, json; data = json.load(sys.stdin); print(data[0]['meanings'][0]['definitions'][0]['definition']) if isinstance(data, list) else print('Definition not found.')\""
+            dictProcess.command = ["sh", "-c", cmd]
+            dictProcess.running = true
+        }
+    }
+
+    function lookupWord(word) {
+        if (word === lastWord) return
+        lastWord = word
+        debounceTimer.restart()
+    }
+
+    Process {
+        id: dictProcess
+        stdout: StdioCollector { onStreamFinished: if (text) definition = text.trim() }
+    }
+
+    // --- App Scanner ---
     Process {
         id: scanner
         command: ["python3", "-c", `
-import os
-import json
-
+import os, json
 apps = []
 dirs = ["/usr/share/applications", os.path.expanduser("~/.local/share/applications")]
-
 for d in dirs:
     if not os.path.exists(d): continue
     for f in os.scandir(d):
         if not f.name.endswith(".desktop"): continue
         try:
-            entry = {}
+            e = {}
+            in_main_section = True  # Track if we're in the main [Desktop Entry] section
             with open(f.path, "r", encoding="utf-8", errors="ignore") as file:
                 for line in file:
-                    if line.startswith("["):
-                        if line.strip() == "[Desktop Entry]": continue
-                        else: break # Stop at other sections for speed
-                    if "=" in line:
+                    line = line.strip()
+                    if line.startswith("["):  # Section header like [Desktop Entry] or [Desktop Action ...]
+                        if line.startswith("[Desktop Entry]"):
+                            in_main_section = True
+                        else:
+                            in_main_section = False  # Ignore other sections like [Desktop Action]
+                    elif in_main_section and "=" in line:  # Only parse key=value lines in main section
                         k, v = line.split("=", 1)
-                        entry[k.strip()] = v.strip()
-            
-            if entry.get("NoDisplay") == "true": continue
-            name, icon, exec_cmd = entry.get("Name"), entry.get("Icon"), entry.get("Exec")
-            
-            if name and exec_cmd:
-                categories = entry.get("Categories", "Other").split(";")
-                primary_cat = "Other"
-                if "WebBrowser" in categories or "Network" in categories: primary_cat = "Internet"
-                elif "Development" in categories: primary_cat = "Dev"
-                elif "System" in categories: primary_cat = "System"
-                elif "Game" in categories: primary_cat = "Games"
-                elif "Graphics" in categories: primary_cat = "Graphics"
-                elif "Utility" in categories: primary_cat = "Tools"
-                
-                apps.append({
-                    "name": name,
-                    "icon": icon or "",
-                    "exec": exec_cmd.split("%")[0].strip(),
-                    "id": f.name,
-                    "category": primary_cat
-                })
+                        e[k.strip()] = v.strip()
+            if e.get("NoDisplay") != "true" and e.get("Name") and e.get("Exec"):
+                apps.append({ "name": e.get("Name"), "icon": e.get("Icon") or "", "exec": e.get("Exec").split("%")[0].strip() })
         except: continue
-
-# Deduplicate by name + exec
 unique = { (a["name"], a["exec"]): a for a in apps }
-result = sorted(unique.values(), key=lambda x: x["name"].lower())
-print(json.dumps(result))
+print(json.dumps(list(unique.values())))
 `]
-        
-        stdout: StdioCollector {
-            onStreamFinished: {
-                if (text) apps = JSON.parse(text)
-                loading = false
-            }
-        }
+        stdout: StdioCollector { onStreamFinished: { if (text) apps = JSON.parse(text); loading = false } }
     }
 
     function launch(cmd) {

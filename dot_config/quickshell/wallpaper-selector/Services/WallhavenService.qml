@@ -15,13 +15,13 @@ Singleton {
     // Search parameters
     property string sorting: "relevance" // relevance, random, date_added, views, favorites, toplist
     property string topRange: "1M" // 1d, 3d, 1w, 1M, 3M, 6M, 1y
-    property string purity: "111" // 100=sfw, 110=sfw/sketchy, 111=sfw/sketchy/nsfw
+    property string purity: "110" // 100=sfw, 110=sfw/sketchy, 111=sfw/sketchy/nsfw
     property string categories: "111" // general/anime/people
 
-    function search(query, page) {
+    function search(query, page, append) {
         if (loading) return
         loading = true
-        results = []
+        if (!append) results = []
         lastError = ""
         currentQuery = query || ""
         currentPage = page || 1
@@ -60,7 +60,11 @@ Singleton {
                 if (xhr.status === 200) {
                     try {
                         var json = JSON.parse(xhr.responseText)
-                        results = json.data
+                        if (append) {
+                            results = results.concat(json.data)
+                        } else {
+                            results = json.data
+                        }
                         if (json.meta) {
                             lastPage = json.meta.last_page
                         }
@@ -78,7 +82,7 @@ Singleton {
 
     function nextPage() {
         if (currentPage < lastPage) {
-            search(currentQuery, currentPage + 1)
+            search(currentQuery, currentPage + 1, true)
         }
     }
 

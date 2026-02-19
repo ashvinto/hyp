@@ -17,6 +17,8 @@ Singleton {
     property color error: "#f38ba8"
     property color success: "#a6e3a1"
 
+    signal themeChanged()
+
     property bool _loading: false
 
     FileView {
@@ -43,6 +45,7 @@ Singleton {
             error = data.error || error
             success = data.success || success
             console.log("[ThemeService] Loaded colors from JSON")
+            root.themeChanged()
             _loading = false
         } catch(e) {
             console.error("[ThemeService] Load failed:", e)

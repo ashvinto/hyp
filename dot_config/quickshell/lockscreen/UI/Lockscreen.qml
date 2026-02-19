@@ -7,6 +7,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Services.Pam
+import "."
 import "../Services"
 
 PanelWindow {
@@ -26,6 +27,18 @@ PanelWindow {
     readonly property color cAccent: ThemeService.accent
     readonly property color cDim: ThemeService.text_dim
 
+    property int unreadNotifications: 0
+    Process {
+        id: notifCountProc
+        command: ["dunstctl", "count", "waiting"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (text) root.unreadNotifications = parseInt(text.trim()) || 0
+            }
+        }
+    }
+    Timer { interval: 3000; running: true; repeat: true; onTriggered: notifCountProc.running = true }
+
     // Lock context for authentication
     LockContext {
         id: lockContext
@@ -38,6 +51,52 @@ PanelWindow {
 
     property var currentTime: new Date()
     Timer { interval: 1000; running: true; repeat: true; onTriggered: root.currentTime = new Date() }
+
+    property string commitQuote: ""
+    property var fallbackQuotes: [
+        "Fixing everything by breaking everything else.",
+        "It worked on my machine.",
+        "Commit early, commit often, regret always.",
+        "Refactored the refactor of the refactor.",
+        "I have no idea what I'm doing.",
+        "Added more bugs to balance things out.",
+        "Caffeine.convert(code);",
+        "Trust me, I'm an engineer.",
+        "One more 'final' fix.",
+        "It's not a bug, it's a feature."
+    ]
+
+    function setRandomFallback() {
+        var index = Math.floor(Math.random() * fallbackQuotes.length);
+        root.commitQuote = fallbackQuotes[index];
+    }
+
+    Process {
+        id: quoteProcess
+        command: ["curl", "--connect-timeout", "3", "-s", "https://whatthecommit.com/index.txt"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (text && text.trim() !== "") {
+                    root.commitQuote = text.trim();
+                } else {
+                    root.setRandomFallback();
+                }
+            }
+        }
+        onExited: (status) => {
+            if (status !== 0) {
+                root.setRandomFallback();
+            }
+        }
+    }
+
+    Timer {
+        id: quoteTimer
+        interval: 60000 // Refresh every minute
+        running: true
+        repeat: true
+        onTriggered: quoteProcess.running = true
+    }
 
     FileView {
         id: wallpaperCache
@@ -165,13 +224,21 @@ PanelWindow {
                         spacing: 15
                         Rectangle { 
                             width: 80; height: 80; radius: 40; color: cAccent
-                            Layout.alignment: Qt.AlignHCenter
+                            clip: true
+                            Image {
+                                source: (typeof ConfigService !== "undefined") ? ConfigService.profileIcon : "file:///home/zoro/.face"
+                                anchors.fill: parent
+                                fillMode: Image.PreserveAspectCrop
+                                onStatusChanged: if (status == Image.Error) fallbackIcon.visible = true
+                            }
                             Text { 
+                                id: fallbackIcon
                                 anchors.centerIn: parent
                                 text: SystemService.user[0].toUpperCase()
                                 font.bold: true
                                 font.pixelSize: 32
                                 color: "#000" 
+                                visible: false
                             }
                         }
                         Text { 
@@ -200,31 +267,33 @@ PanelWindow {
                     }
                 }
 
-                Rectangle {
-                    width: 280; height: 220
-                    color: cCard; radius: 32; border.color: cBorder
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.margins: 25
-                        spacing: 15
-                        Text { 
-                            text: "SYSTEM HEALTH"
-                            color: cDim
-                            font.bold: true
-                            font.pixelSize: 11
-                            font.letterSpacing: 1
-                            Layout.alignment: Qt.AlignHCenter 
-                        }
-                        RowLayout {
-                            Layout.alignment: Qt.AlignHCenter
-                            spacing: 15
-                            MiniGauge { label: "CPU"; value: ResourceService.cpu; color: "#f38ba8" }
-                            MiniGauge { label: "RAM"; value: ResourceService.ram; color: "#fab387" }
-                            MiniGauge { label: "GPU"; value: ResourceService.gpu; color: "#89b4fa" }
-                        }
-                        
-                        // Spacer
-                        Item { Layout.fillHeight: true }
+                                                Rectangle {
+                                                    width: 340; height: 220
+                                                    color: cCard; radius: 32; border.color: cBorder
+                                                    ColumnLayout {
+                                                        anchors.fill: parent
+                                                        anchors.margins: 25
+                                                        spacing: 15
+                                                        Text { 
+                                                            text: "SYSTEM HEALTH"
+                                                            color: cDim
+                                                            font.bold: true
+                                                            font.pixelSize: 11
+                                                            font.letterSpacing: 1
+                                                            Layout.alignment: Qt.AlignHCenter 
+                                                        }
+                                                                                RowLayout {
+                                                                                    Layout.alignment: Qt.AlignHCenter
+                                                                                    spacing: 10
+                                                                                    MiniGauge { label: "CPU"; value: ResourceService.cpu; pillColor: ThemeService.error; size: 60; strokeWidth: 6 }
+                                                                                    MiniGauge { label: "RAM"; value: ResourceService.ram; pillColor: cAccent; size: 60; strokeWidth: 6 }
+                                                                                    MiniGauge { label: "GPU"; value: ResourceService.gpu; pillColor: ThemeService.primary; size: 60; strokeWidth: 6 }
+                                                                                    MiniGauge { label: "BAT"; value: QuickSettingsService.batteryLevel; pillColor: QuickSettingsService.isCharging ? ThemeService.success : cAccent; size: 60; strokeWidth: 6 }
+                                                                                }                                        
+
+                                        // Spacer
+
+                                        Item { Layout.fillHeight: true }
 
                         // Quick Settings
                         RowLayout {
@@ -264,8 +333,24 @@ PanelWindow {
                     }
                 }
             }
+
+            Text {
+                Layout.alignment: Qt.AlignHCenter
+                Layout.preferredWidth: 800
+                text: root.commitQuote
+                color: cDim
+                font.pixelSize: 18
+                font.italic: true
+                font.family: "JetBrains Mono"
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
+                opacity: text !== "" ? 1.0 : 0.0
+                Behavior on opacity { NumberAnimation { duration: 500 } }
+            }
         }
     }
+
+    Component.onCompleted: quoteProcess.running = true
 
     // Helper for running processes since Lockscreen might not have global processService
     QtObject {
@@ -274,52 +359,6 @@ PanelWindow {
             var proc = Qt.createQmlObject('import Quickshell.Io; Process {}', root);
             proc.command = cmd;
             proc.running = true;
-        }
-    }
-
-    component MiniGauge: ColumnLayout {
-        id: gaugeRoot
-        property string label: ""
-        property real value: 0
-        property color color: cAccent
-        spacing: 8
-        Item {
-            width: 60; height: 60
-            Shape {
-                anchors.fill: parent
-                layer.enabled: true
-                layer.samples: 4
-                ShapePath { 
-                    strokeColor: cBorder
-                    strokeWidth: 4
-                    fillColor: "transparent"
-                    PathAngleArc { centerX: 30; centerY: 30; radiusX: 25; radiusY: 25; startAngle: -90; sweepAngle: 360 } 
-                }
-                ShapePath { 
-                    strokeColor: gaugeRoot.color
-                    strokeWidth: 4
-                    fillColor: "transparent"
-                    capStyle: ShapePath.RoundCap
-                    PathAngleArc { 
-                        centerX: 30; centerY: 30; radiusX: 25; radiusY: 25; startAngle: -90
-                        sweepAngle: (value/100)*360 
-                    } 
-                }
-            }
-            Text { 
-                anchors.centerIn: parent
-                text: Math.round(value) + "%"
-                color: "white"
-                font.pixelSize: 11
-                font.bold: true 
-            }
-        }
-        Text { 
-            text: label
-            color: cDim
-            font.pixelSize: 9
-            font.bold: true
-            Layout.alignment: Qt.AlignHCenter 
         }
     }
 }

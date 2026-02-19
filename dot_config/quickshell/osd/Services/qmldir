@@ -1,2 +1,3 @@
 singleton VolumeService VolumeService.qml
 singleton BrightnessService BrightnessService.qml
+singleton ThemeService ThemeService.qml

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        :root {
+            --bg: rgba(25, 25, 30, 0.94);
+            --sidebar-bg: rgba(0, 0, 0, 0.3);
+            --accent: #cba6f7;
+            --text: #cdd6f4;
+            --dim: #6c7086;
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --danger: #f38ba8;
+            --oi-color: #89dceb;
+        }
+
+        body { margin: 0; padding: 0; font-family: 'Inter', sans-serif; overflow: hidden; background: transparent; color: var(--text); }
+        .container { display: flex; width: 100vw; height: 100vh; background: var(--bg); border-radius: 24px; border: 1px solid var(--glass-border); overflow: hidden; backdrop-filter: blur(30px); }
+        .sidebar { width: 240px; background: var(--sidebar-bg); display: flex; flex-direction: column; padding: 20px; transition: 0.4s; border-right: 1px solid var(--glass-border); -webkit-app-region: drag; }
+        .logo { font-size: 18px; font-weight: 800; color: var(--accent); margin-bottom: 30px; display: flex; align-items: center; gap: 12px; }
+        .logo span { font-size: 24px; }
+        .nav-btn { padding: 12px 15px; margin-bottom: 6px; border-radius: 14px; color: var(--dim); cursor: pointer; transition: 0.2s; -webkit-app-region: no-drag; position: relative; display: flex; align-items: center; gap: 12px; }
+        .nav-btn:hover { background: rgba(255, 255, 255, 0.05); color: var(--text); }
+        .nav-btn.active { background: rgba(203, 166, 247, 0.15); color: var(--accent); font-weight: 600; }
+        .nav-btn span { font-family: 'Symbols Nerd Font'; font-size: 20px; }
+        .context-btn { background: rgba(137, 220, 235, 0.1); border: 1px solid var(--oi-color); color: var(--oi-color); margin-top: 20px; justify-content: center; font-weight: 800; }
+        .context-btn.online { border-color: #a6e3a1; color: #a6e3a1; background: rgba(166, 227, 161, 0.05); }
+        .kill-btn { background: rgba(243, 139, 168, 0.1); border: 1px solid var(--danger); color: var(--danger); margin-top: 8px; justify-content: center; display: none; }
+        .spacer { flex-grow: 1; }
+        .close-btn { padding: 12px; text-align: center; border-radius: 12px; background: rgba(243, 139, 168, 0.1); color: #f38ba8; cursor: pointer; font-weight: bold; -webkit-app-region: no-drag; }
+        .main { flex-grow: 1; display: flex; flex-direction: column; position: relative; }
+        .top-bar { height: 40px; display: flex; align-items: center; padding: 0 15px; background: rgba(0,0,0,0.1); -webkit-app-region: drag; }
+        .webview-container { flex-grow: 1; background: white; position: relative; }
+        webview { width: 100%; height: 100%; display: none; }
+        webview.active { display: flex; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar" id="sidebar">
+            <div class="logo"><span>󰚩</span> ZERO AI</div>
+            <div id="nav-list"></div>
+            <div id="ctx-btn" class="nav-btn context-btn" onclick="activateGodMode()"><span>⚡</span> <span id="ctx-text">ACTIVATE SYSTEM</span></div>
+            <div id="kill-btn" class="nav-btn kill-btn" onclick="killBridge()"><span>󰓛</span> KILL SYSTEM</div>
+            <div class="spacer"></div>
+            <div class="close-btn" onclick="window.close()">Close Hub</div>
+        </div>
+        <div class="main">
+            <div class="top-bar"><div id="status-text" style="margin-left: 15px; font-size: 12px; font-weight: 600; color: var(--dim)">Ready</div></div>
+            <div class="webview-container" id="wv-container"></div>
+        </div>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+        const path = require('path');
+        const preloadPath = path.join(__dirname, 'preload.js');
+
+        let services = JSON.parse(localStorage.getItem('zero-ai-services')) || [
+            { id: 'chatgpt', name: 'ChatGPT', url: 'https://chatgpt.com', icon: '󰭹' },
+            { id: 'claude', name: 'Claude', url: 'https://claude.ai', icon: '󰚩' },
+            { id: 'gemini', name: 'Gemini', url: 'https://gemini.google.com', icon: '󰚩' }
+        ];
+
+        let activeId = services[0].id;
+        let bridgeOnline = false;
+
+        function init() {
+            const navList = document.getElementById('nav-list');
+            const wvContainer = document.getElementById('wv-container');
+            navList.innerHTML = '';
+            
+            services.forEach(s => {
+                const btn = document.createElement('div');
+                btn.className = `nav-btn ${s.id === activeId ? 'active' : ''}`;
+                btn.onclick = () => switchAI(s.id);
+                btn.innerHTML = `<span>${s.icon || '󰚩'}</span> ${s.name}`;
+                navList.appendChild(btn);
+
+                if (!document.getElementById(`wv-${s.id}`)) {
+                    const wv = document.createElement('webview');
+                    wv.id = `wv-${s.id}`;
+                    wv.src = s.id === activeId ? s.url : 'about:blank';
+                    wv.className = s.id === activeId ? 'active' : '';
+                    wv.setAttribute('useragent', "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+                    wv.setAttribute('preload', preloadPath);
+                    
+                    wv.addEventListener('ipc-message', async (event) => {
+                        if (event.channel === 'run-code') executeCode(event.args[0]);
+                    });
+                    wvContainer.appendChild(wv);
+                }
+            });
+        }
+
+        async function hardwareType(text) {
+            const wv = document.getElementById(`wv-${activeId}`);
+            wv.focus();
+            
+            // 1. JS: Find and Focus the input box
+            const focusScript = `
+                (() => {
+                    const selectors = ['#prompt-textarea', 'div[contenteditable="true"]', '.ProseMirror', 'textarea'];
+                    let input = null;
+                    for (const s of selectors) {
+                        const el = document.querySelector(s);
+                        if (el && el.offsetParent !== null) { input = el; break; }
+                    }
+                    if (input) {
+                        input.focus();
+                        const range = document.createRange();
+                        const sel = window.getSelection();
+                        range.selectNodeContents(input);
+                        range.collapse(false);
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+                        return true;
+                    }
+                    return false;
+                })()
+            `;
+            
+            const focused = await wv.executeJavaScript(focusScript);
+            if (focused) {
+                // 2. Electron: Type the text as hardware events
+                wv.insertText(text);
+                
+                // 3. Dispatch Enter Key via Native Input Event
+                setTimeout(() => {
+                    wv.sendInputEvent({ type: 'keyDown', keyCode: 'Enter' });
+                    wv.sendInputEvent({ type: 'keyUp', keyCode: 'Enter' });
+                }, 1000);
+            }
+        }
+
+        async function executeCode(code) {
+            document.getElementById('status-text').innerText = "System: Busy...";
+            try {
+                const res = await fetch('http://localhost:8000/run', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ code: code })
+                });
+                const data = await res.json();
+                hardwareType("
+
+Result:
+```
+" + data.output + "
+```
+");
+                document.getElementById('status-text').innerText = "System: Success";
+            } catch (e) {
+                document.getElementById('status-text').innerText = "System: Error";
+            }
+        }
+
+        async function activateGodMode() {
+            ipcRenderer.send('launch-bridge');
+            const prompt = `I have connected you to my local Linux terminal. I can run your code blocks directly on my machine. 
+            CRITICAL INSTRUCTIONS:
+            1. For system tasks, provide specific Bash or Python code blocks.
+            2. When I run your code, I will provide you with the output in a 'System Output' block.
+            3. Analyze that output and continue the task autonomously until finished.`;
+            
+            hardwareType(prompt);
+            document.getElementById('ctx-text').innerText = "STARTING...";
+        }
+
+        function killBridge() { ipcRenderer.send('kill-bridge'); }
+
+        async function checkBridge() {
+            try {
+                await fetch('http://localhost:8000/status');
+                bridgeOnline = true;
+                document.getElementById('ctx-btn').classList.add('online');
+                document.getElementById('kill-btn').style.display = 'flex';
+                document.getElementById('ctx-text').innerText = "SYSTEM ACTIVE";
+            } catch (e) {
+                bridgeOnline = false;
+                document.getElementById('ctx-btn').classList.remove('online');
+                document.getElementById('kill-btn').style.display = 'none';
+                document.getElementById('ctx-text').innerText = "ACTIVATE SYSTEM";
+            }
+            document.querySelectorAll('webview').forEach(wv => wv.send('bridge-status', bridgeOnline));
+        }
+        setInterval(checkBridge, 2000);
+
+        function switchAI(id) {
+            if (id === activeId) return;
+            const oldWv = document.getElementById(`wv-${activeId}`);
+            if (oldWv) { oldWv.classList.remove('active'); oldWv.src = 'about:blank'; }
+            activeId = id;
+            const newWv = document.getElementById(`wv-${id}`);
+            newWv.src = services.find(s=>s.id===id).url;
+            newWv.classList.add('active');
+            init();
+        }
+        init();
+    </script>
+</body>
+</html>

@@ -18,7 +18,12 @@ get_icon() {
 }
 
 notify_user() {
-	notify-send -e -h string:x-canonical-private-synchronous:brightness_notif -h int:value:$current -u low -i $icon "Screen" "Brightness:$current%"
+    # Trigger Quickshell OSD with context
+    if pgrep -f "qs -c osd" > /dev/null; then
+        :
+    else
+        QS_OSD_TYPE=brightness qs -c osd & disown
+    fi
 }
 
 change_backlight() {
@@ -38,8 +43,7 @@ change_backlight() {
 			sw_bright=$((sw_bright + 10))
             if (( sw_bright > 100 )); then sw_bright=100; fi
             "$manager" dim "$sw_bright"
-            if (( sw_bright == 100 )); then notify-send -e -u low "Screen" "Software Dimming Disabled"
-            else notify-send -e -u low "Screen" "Software Brightness: ${sw_bright}%"; fi
+            notify_user
 			return
 		fi
 		new_brightness=$((current_brightness + step))
@@ -48,7 +52,7 @@ change_backlight() {
 			if (( sw_bright > 10 )); then
 				sw_bright=$((sw_bright - 10))
                 "$manager" dim "$sw_bright"
-				notify-send -e -u low "Screen" "Software Brightness: ${sw_bright}%"
+                notify_user
 				return
 			fi
 		fi

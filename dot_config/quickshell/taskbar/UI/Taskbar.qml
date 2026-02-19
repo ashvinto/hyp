@@ -13,6 +13,8 @@ PanelWindow {
     implicitHeight: 140
     color: "transparent"
 
+    visible: (typeof Local.ConfigService !== "undefined") ? Local.ConfigService.showTaskbar : true
+    
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "taskbar"
     WlrLayershell.exclusiveZone: -1

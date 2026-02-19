@@ -13,7 +13,7 @@ Singleton {
 
     function toggleWifi() { Quickshell.execDetached(["sh", "-c", "nmcli radio wifi | grep -q 'enabled' && nmcli radio wifi off || nmcli radio wifi on"]) }
     function toggleBluetooth() { Quickshell.execDetached(["sh", "-c", "bluetoothctl show | grep -q 'Powered: yes' && bluetoothctl power off || bluetoothctl power on"]) }
-    function lock() { Quickshell.execDetached(["hyprlock"]) }
+    function lock() { Quickshell.execDetached(["/home/zoro/.config/hypr/scripts/lock.sh"]) }
     function logout() { Quickshell.execDetached(["hyprctl", "dispatch", "exit"]) }
     function shutdown() { Quickshell.execDetached(["shutdown", "now"]) }
     function reboot() { Quickshell.execDetached(["reboot"]) }

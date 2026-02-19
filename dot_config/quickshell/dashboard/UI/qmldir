@@ -1,3 +1,14 @@
-DashboardCard DashboardCard.qml
-CircularProgress CircularProgress.qml
 Dashboard Dashboard.qml
+CalendarView CalendarView.qml
+MiniGauge MiniGauge.qml
+CircularProgress CircularProgress.qml
+ClickableIcon ClickableIcon.qml
+PowerBtn PowerBtn.qml
+QuickTile QuickTile.qml
+SettingSlider SettingSlider.qml
+SettingSwitch SettingSwitch.qml
+SidebarItem SidebarItem.qml
+StatPill StatPill.qml
+ToolBtn ToolBtn.qml
+SliderModule SliderModule.qml
+IconButton IconButton.qml

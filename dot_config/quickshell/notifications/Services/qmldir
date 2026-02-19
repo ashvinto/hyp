@@ -1,0 +1,2 @@
+singleton ThemeService ThemeService.qml
+singleton ConfigService ConfigService.qml

@@ -1,14 +1,14 @@
 {
   "colors": {
-    "background": "#1e100e",
-    "surface": "#2b1c19",
-    "surface_variant": "#372623",
-    "primary": "#ffabed",
-    "secondary": "#f3b2e3",
-    "accent": "#ffabed",
-    "text": "#f9dcd8",
-    "text_dim": "#e7bdb6",
-    "error": "#ffb4ab",
-    "success": "#ffd7f2"
+    "background": "#0A0E10",
+    "surface": "#4F5153",
+    "surface_variant": "#9F9FA0",
+    "primary": "#7C8288",
+    "secondary": "#555D64",
+    "accent": "#7C8288",
+    "text": "#F1F2F2",
+    "text_dim": "#E3E4E4",
+    "error": "#D7D9DA",
+    "success": "#AACA5B"
   }
 }

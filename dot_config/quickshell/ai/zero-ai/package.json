@@ -1,0 +1,12 @@
+{
+  "name": "zero-ai",
+  "version": "1.0.0",
+  "description": "Standalone AI Hub with System Integration",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "electron": "^33.0.0"
+  }
+}

@@ -71,11 +71,11 @@ PanelWindow {
     }
 
     // --- Dynamic Colors from Common ThemeService (Safe Access) ---
-    readonly property color cBg: (typeof ThemeService !== "undefined" && ThemeService.backgroundDark) ? ThemeService.backgroundDark : "#1e1e2e"
-    readonly property color cFg: (typeof ThemeService !== "undefined" && ThemeService.text) ? ThemeService.text : "#cdd6f4"
-    readonly property color cAccent: (typeof ThemeService !== "undefined" && ThemeService.accent) ? ThemeService.accent : "#cba6f7"
-    readonly property color cSurface: (typeof ThemeService !== "undefined" && ThemeService.surface_variant) ? ThemeService.surface_variant : "#313244"
-    readonly property color cRed: (typeof ThemeService !== "undefined" && ThemeService.error) ? ThemeService.error : "#f38ba8"
+    readonly property color cBg: (typeof ThemeService !== "undefined" && ThemeService.backgroundDark) ? ThemeService.backgroundDark : "#13121c"
+    readonly property color cFg: (typeof ThemeService !== "undefined" && ThemeService.text) ? ThemeService.text : "#e5e0ef"
+    readonly property color cAccent: (typeof ThemeService !== "undefined" && ThemeService.accent) ? ThemeService.accent : "#8aceff"
+    readonly property color cSurface: (typeof ThemeService !== "undefined" && ThemeService.surface_variant) ? ThemeService.surface_variant : "#201e29"
+    readonly property color cRed: (typeof ThemeService !== "undefined" && ThemeService.error) ? ThemeService.error : "#ffb4ab"
     readonly property color cGreen: (typeof ThemeService !== "undefined" && ThemeService.success) ? ThemeService.success : "#a6e3a1"
     readonly property color cDim: (typeof ThemeService !== "undefined" && ThemeService.text_dim) ? ThemeService.text_dim : Qt.rgba(0.8, 0.8, 0.9, 0.4)
 
@@ -92,15 +92,59 @@ PanelWindow {
         color: "transparent"
         Behavior on anchors.topMargin { NumberAnimation { duration: 400; easing.type: Easing.OutExpo } }
 
-        // --- DASHBOARD ---
+        // --- DYNAMIC CENTER MODULE ---
         Rectangle {
-            width: 50; height: 32
+            id: centerModule
+            height: 32
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: parent.top; anchors.topMargin: 5
             radius: 16; color: cBg; border.color: cSurface; border.width: 1
             z: 10
-            Text { anchors.centerIn: parent; text: "󰕮"; color: cAccent; font.pixelSize: 20; font.family: "Symbols Nerd Font" }
-            MouseArea { anchors.fill: parent; onClicked: Quickshell.execDetached(["quickshell", "-c", "dashboard"])
+            
+            implicitWidth: Math.max(50, centerLayout.implicitWidth + 24)
+            Behavior on implicitWidth { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+
+            RowLayout {
+                id: centerLayout
+                anchors.centerIn: parent
+                anchors.leftMargin: 12; anchors.rightMargin: 12
+                spacing: 10
+
+                // Icon / Prefix
+                Text {
+                    text: {
+                        if (ContextService.activeClass === "foot") return ""
+                        if (ContextService.activeClass === "VSCodium" || ContextService.activeClass === "Cursor") return "󰨞"
+                        if (ContextService.activeClass.includes("vivaldi") || ContextService.activeClass.includes("firefox")) return "󰈹"
+                        return "󰕮"
+                    }
+                    color: cAccent; font.pixelSize: 18; font.family: "Symbols Nerd Font"
+                }
+
+                // Dynamic Text
+                Text {
+                    visible: text !== ""
+                    text: {
+                        if (ContextService.activeClass === "foot") return ContextService.cwd
+                        if (ContextService.activeClass === "VSCodium" || ContextService.activeClass === "Cursor") return ContextService.gitBranch || "Coding"
+                        if (ContextService.activeClass.includes("vivaldi") || ContextService.activeClass.includes("firefox")) return ContextService.activeTitle.substring(0, 30) + (ContextService.activeTitle.length > 30 ? "..." : "")
+                        return ""
+                    }
+                    color: cFg; font.pixelSize: 12; font.bold: true; elide: Text.ElideRight; Layout.maximumWidth: 300
+                }
+            }
+
+            MouseArea { 
+                anchors.fill: parent
+                onClicked: {
+                    if (ContextService.activeClass !== "") {
+                        // Focus the window (using address if possible, but class is a safe fallback for simple setups)
+                        // Actually, just calling focuswindow on the current class is the cleanest way via shell
+                        Quickshell.execDetached(["hyprctl", "dispatch", "focuswindow", ContextService.activeClass])
+                    } else {
+                        Quickshell.execDetached(["quickshell", "-c", "dashboard"])
+                    }
+                }
             }
         }
 
@@ -229,6 +273,7 @@ PanelWindow {
                     }
 
                     Rectangle {
+                        id: powerProfileBtn
                         width: 26; height: 26; radius: 13
                         readonly property color activeColor: {
                             if (typeof PowerProfileService === "undefined") return cAccent
@@ -236,7 +281,7 @@ PanelWindow {
                                    PowerProfileService.activeProfile === "power-saver" ? cGreen : cAccent
                         }
 
-                        color: powerMenuOpen ? Qt.rgba(activeColor.r, activeColor.g, activeColor.b, 0.15) : "transparent"
+                        color: powerMenuOpen ? Qt.rgba(powerProfileBtn.activeColor.r, powerProfileBtn.activeColor.g, powerProfileBtn.activeColor.b, 0.15) : "transparent"
                         Text {
                             anchors.centerIn: parent
                             text: {
@@ -247,7 +292,7 @@ PanelWindow {
                             }
                             color: {
                                 if (typeof PowerProfileService === "undefined") return cFg
-                                powerMenuOpen ? activeColor : (PowerProfileService.activeProfile !== "balanced" ? activeColor : cFg)
+                                powerMenuOpen ? powerProfileBtn.activeColor : (PowerProfileService.activeProfile !== "balanced" ? powerProfileBtn.activeColor : cFg)
                             }
                             font.pixelSize: 16; font.family: "Symbols Nerd Font"
                         }

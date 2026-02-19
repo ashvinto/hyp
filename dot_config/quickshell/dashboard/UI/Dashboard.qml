@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import QtQuick.Effects
 import Quickshell
 import Quickshell.Wayland
+import "."
 import "../Services"
 
 PanelWindow {
@@ -105,6 +106,11 @@ PanelWindow {
                         active: stack.currentIndex === 1 && !powerMenuVisible
                         onClicked: { stack.currentIndex = 1; powerMenuVisible = false }
                     }
+                    TabButton {
+                        icon: "󰃭"
+                        active: stack.currentIndex === 2 && !powerMenuVisible
+                        onClicked: { stack.currentIndex = 2; powerMenuVisible = false }
+                    }
 
                     Item { Layout.fillHeight: true }
 
@@ -175,9 +181,9 @@ PanelWindow {
                                         anchors.centerIn: parent; spacing: 30
                                         RowLayout {
                                             spacing: 40
-                                            CircularProgress { value: typeof ResourceService !== "undefined" ? ResourceService.cpu : 0; label: "CPU"; color: "#f38ba8"; size: 120 }
-                                            CircularProgress { value: typeof ResourceService !== "undefined" ? ResourceService.ram : 0; label: "RAM"; color: "#fab387"; size: 120 }
-                                            CircularProgress { value: typeof ResourceService !== "undefined" ? ResourceService.gpu : 0; label: "GPU"; color: "#89b4fa"; size: 120 }
+                                            MiniGauge { value: typeof ResourceService !== "undefined" ? ResourceService.cpu : 0; label: "CPU"; pillColor: "#f38ba8"; size: 120; strokeWidth: 12 }
+                                            MiniGauge { value: typeof ResourceService !== "undefined" ? ResourceService.ram : 0; label: "RAM"; pillColor: "#fab387"; size: 120; strokeWidth: 12 }
+                                            MiniGauge { value: typeof ResourceService !== "undefined" ? ResourceService.gpu : 0; label: "GPU"; pillColor: "#89b4fa"; size: 120; strokeWidth: 12 }
                                         }
                                         RowLayout {
                                             Layout.alignment: Qt.AlignHCenter; spacing: 40
@@ -202,7 +208,7 @@ PanelWindow {
                                             Layout.fillWidth: true; height: 60; radius: 15; color: Qt.rgba(1,1,1,0.05)
                                             RowLayout {
                                                 anchors.centerIn: parent; spacing: 20
-                                                Text { text: "󰖩 " + (typeof QuickSettingsService !== "undefined" && LQuickSettingsService.wifiEnabled ? "Online" : "Offline"); color: (typeof QuickSettingsService !== "undefined" && QuickSettingsService.wifiEnabled) ? "#a6e3a1" : "#f38ba8"; font.bold: true; font.pixelSize: 12; font.family: "Symbols Nerd Font" }
+                                                Text { text: "󰖩 " + (typeof QuickSettingsService !== "undefined" && QuickSettingsService.wifiEnabled ? "Online" : "Offline"); color: (typeof QuickSettingsService !== "undefined" && QuickSettingsService.wifiEnabled) ? "#a6e3a1" : "#f38ba8"; font.bold: true; font.pixelSize: 12; font.family: "Symbols Nerd Font" }
                                                 Text { text: "󰁹 " + (typeof QuickSettingsService !== "undefined" ? QuickSettingsService.batteryLevel : 0) + "%"; color: "#f9e2af"; font.bold: true; font.pixelSize: 12; font.family: "Symbols Nerd Font" }
                                             }
                                         }
@@ -222,6 +228,12 @@ PanelWindow {
                                 }
                             }
                         }
+                    }
+
+                    // 3. CALENDAR
+                    CalendarView {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
                     }
                 }
 
@@ -294,8 +306,8 @@ PanelWindow {
         width: 50
         height: 50
         radius: 12
-        color: active ? Qt.rgba(cAccent.r, cAccent.g, cAccent.b, 0.1) : "transparent"
-        border.color: active ? cAccent : "transparent"
+        color: active ? Qt.rgba(ThemeService.accent.r, ThemeService.accent.g, ThemeService.accent.b, 0.1) : "transparent"
+        border.color: active ? ThemeService.accent : "transparent"
         border.width: 1
         Layout.alignment: Qt.AlignHCenter
 
@@ -317,7 +329,7 @@ PanelWindow {
         property string icon: ""
         property string label: ""
         property string value: ""
-        property color statColor: cAccent
+        property color statColor: ThemeService.accent
 
         Layout.fillWidth: true
         height: 90
@@ -362,7 +374,7 @@ PanelWindow {
         property string icon: ""
         property string label: ""
         property string value: ""
-        property color statMiniColor: cAccent
+        property color statMiniColor: ThemeService.accent
 
         spacing: 10
         Text {
@@ -397,7 +409,7 @@ PanelWindow {
         spacing: 12
         Text {
             text: icon
-            color: cAccent
+            color: ThemeService.accent
             font.pixelSize: 14
             font.family: "Symbols Nerd Font"
             Layout.preferredWidth: 20
@@ -432,7 +444,7 @@ PanelWindow {
             height: 70
             radius: 20
             color: Qt.rgba(1,1,1,0.03)
-            border.color: hover.hovered ? parent.color : "transparent"
+            border.color: hover.hovered ? ThemeService.accent : "transparent"
             border.width: 1
             Text {
                 anchors.centerIn: parent

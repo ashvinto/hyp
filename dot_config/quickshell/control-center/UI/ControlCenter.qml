@@ -13,9 +13,9 @@ PanelWindow {
     anchors.bottom: true
     anchors.right: true
 
-    // Fixed width, expands to fit content when hovered
-    implicitWidth: 400
-    implicitHeight: hoverHandler.hovered ? (contentCol.implicitHeight + 30) : 30  // Fixed minimum height
+    // Fixed width, reduced to fit content snugly
+    implicitWidth: 360
+    implicitHeight: hoverHandler.hovered ? (contentCol.implicitHeight + 40) : 30
 
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
@@ -27,6 +27,9 @@ PanelWindow {
     readonly property color cText: ThemeService.text
     readonly property color cDim: ThemeService.text_dim
     readonly property color cRed: ThemeService.error
+    readonly property color cGreen: ThemeService.success
+    readonly property color cBlue: "#89b4fa"
+    readonly property color cYellow: "#fab387"
 
     color: "transparent"
 
@@ -36,25 +39,24 @@ PanelWindow {
     Rectangle {
         id: panel
         anchors.fill: parent
-        anchors.leftMargin: 15
-        anchors.rightMargin: 15
-        anchors.topMargin: 15
-        anchors.bottomMargin: 15  // Changed from -28 to 15 to prevent cutting off
-        color: Qt.rgba(cBg.r, cBg.g, cBg.b, 0.95)  // Increased opacity for better visibility
-        radius: 20  // Slightly less rounded
-        border.color: Qt.rgba(1, 1, 1, 0.15)  // Slightly more visible border
+        anchors.leftMargin: 10
+        anchors.topMargin: 10
+        anchors.rightMargin: 0
+        anchors.bottomMargin: 0
+        color: Qt.rgba(cBg.r, cBg.g, cBg.b, 0.98)
+        radius: 24
+        border.color: Qt.rgba(1, 1, 1, 0.1)
         border.width: 1
         visible: opacity > 0
         opacity: hoverHandler.hovered ? 1.0 : 0.0
-        clip: true
 
         // Add subtle shadow effect
         layer.enabled: true
         layer.effect: MultiEffect {
             shadowEnabled: true
-            shadowColor: Qt.rgba(0, 0, 0, 0.3)
-            shadowVerticalOffset: 5
-            shadowBlur: 10
+            shadowColor: Qt.rgba(0, 0, 0, 0.4)
+            shadowVerticalOffset: 4
+            shadowBlur: 15
         }
 
         Behavior on opacity { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
@@ -62,49 +64,61 @@ PanelWindow {
         ColumnLayout {
             id: contentCol
             anchors.fill: parent
-            anchors.margins: 24
+            anchors.leftMargin: 20
+            anchors.rightMargin: 20
+            anchors.topMargin: 24
+            anchors.bottomMargin: 24
             spacing: 24
 
-            // HEADER - Enhanced with better visual hierarchy
+            // HEADER
             RowLayout {
+                Layout.fillWidth: true
                 spacing: 12
                 Rectangle {
-                    width: 40; height: 40; radius: 20; color: cSurface
-                    border.color: cAccent; border.width: 1
+                    width: 44; height: 44; radius: 22; color: cSurface
+                    clip: true
+                    border.color: Qt.rgba(cAccent.r, cAccent.g, cAccent.b, 0.3); border.width: 1
+                    
+                    Image {
+                        source: (typeof ConfigService !== "undefined") ? ConfigService.profileIcon : "file:///home/zoro/.face"
+                        anchors.fill: parent
+                        fillMode: Image.PreserveAspectCrop
+                        onStatusChanged: if (status == Image.Error) fallbackIcon.visible = true
+                    }
                     Text {
+                        id: fallbackIcon
                         anchors.centerIn: parent
                         text: (SystemService.user && SystemService.user.length > 0) ? SystemService.user[0].toUpperCase() : "?"
-                        font.bold: true; font.pixelSize: 16; color: cAccent
+                        font.bold: true; font.pixelSize: 18; color: cAccent
+                        visible: false
                     }
                 }
                 ColumnLayout {
-                    spacing: 2
+                    spacing: 0
                     Text {
                         text: SystemService.user;
                         color: cText;
                         font.bold: true;
-                        font.pixelSize: 14
+                        font.pixelSize: 15
                     }
                     Text {
                         text: SystemService.uptime;
                         color: cDim;
-                        font.pixelSize: 11;
-                        font.italic: true  // Added italic for better distinction
+                        font.pixelSize: 12;
                     }
                 }
                 Item { Layout.fillWidth: true }
                 IconButton {
                     icon: "󰒓";
-                    width: 36; height: 36;  // Slightly larger for better click area
                     onClicked: Quickshell.execDetached(["nm-connection-editor"])
                 }
             }
 
-            // QUICK TOGGLES - Improved layout
+            // QUICK TOGGLES
             GridLayout {
-                columns: 4;  // Changed to 4 columns for better balance
-                columnSpacing: 8;  // Reduced spacing
-                rowSpacing: 8;
+                columns: 2
+                columnSpacing: 10
+                rowSpacing: 10
                 Layout.fillWidth: true
 
                 QuickTile {
@@ -112,22 +126,30 @@ PanelWindow {
                     onClicked: QuickSettingsService.toggleWifi()
                 }
                 QuickTile {
-                    label: "BT"; icon: "󰂯"; active: QuickSettingsService.btEnabled
+                    label: "Bluetooth"; icon: "󰂯"; active: QuickSettingsService.btEnabled
                     onClicked: QuickSettingsService.toggleBluetooth()
                 }
                 QuickTile {
-                    label: "Night"; icon: "󰖔"; active: QuickSettingsService.nightLightEnabled
+                    label: "Night Light"; icon: "󰖔"; active: QuickSettingsService.nightLightEnabled
                     onClicked: QuickSettingsService.toggleNightLight()
                 }
                 QuickTile {
-                    label: "DND"; icon: "󰂚"; active: QuickSettingsService.dndEnabled
+                    label: "DND Mode"; icon: "󰂚"; active: QuickSettingsService.dndEnabled
                     onClicked: QuickSettingsService.toggleDnd()
+                }
+                QuickTile {
+                    label: "Focus Mode"; icon: "󰈉"; active: QuickSettingsService.focusModeEnabled
+                    onClicked: QuickSettingsService.toggleFocus()
+                }
+                QuickTile {
+                    label: "Retro Mode"; icon: "󰄭"; active: QuickSettingsService.retroModeEnabled
+                    onClicked: QuickSettingsService.toggleRetro()
                 }
             }
 
-            // SLIDERS - Enhanced with better visual feedback
+            // SLIDERS
             ColumnLayout {
-                spacing: 15; Layout.fillWidth: true
+                spacing: 12; Layout.fillWidth: true
                 SliderModule {
                     icon: VolumeService.muted ? "󰝟" : "󰕾"
                     value: VolumeService.volume / 100
@@ -141,113 +163,60 @@ PanelWindow {
                 }
             }
 
-            // SYSTEM MONITOR SECTION - Expanded system information
-            ColumnLayout {
+            // SYSTEM MONITOR SECTION
+            Rectangle {
                 Layout.fillWidth: true
-                spacing: 10
+                height: statsGrid.implicitHeight + 30
+                color: cSurface
+                radius: 16
+                border.color: Qt.rgba(1, 1, 1, 0.05)
 
-                // CPU, RAM, Battery row
-                RowLayout {
-                    Layout.fillWidth: true; spacing: 10
+                GridLayout {
+                    id: statsGrid
+                    anchors.centerIn: parent
+                    width: parent.width - 20
+                    columns: 3
+                    columnSpacing: 10
+                    rowSpacing: 15
+
                     StatPill {
-                        value: Math.round(ResourceService.cpu) + "%";
-                        icon: "";
-                        color: cRed
+                        label: "CPU"
+                        value: Math.round(ResourceService.cpu) + "%"
+                        icon: ""
+                        pillColor: cRed
                     }
                     StatPill {
-                        value: Math.round(ResourceService.ram) + "%";
-                        icon: "";
-                        color: cYellow || "#fab387"
+                        label: "RAM"
+                        value: Math.round(ResourceService.ram) + "%"
+                        icon: ""
+                        pillColor: cYellow
                     }
                     StatPill {
-                        value: QuickSettingsService.batteryLevel + "%";
-                        icon: "󰁹";
-                        color: cGreen || "#a6e3a1"
+                        label: "BAT"
+                        value: QuickSettingsService.batteryLevel + "%"
+                        icon: "󰁹"
+                        pillColor: cGreen
+                    }
+                    StatPill {
+                        label: "GPU"
+                        value: Math.round(ResourceService.gpu) + "%"
+                        icon: "󰢽"
+                        pillColor: cBlue
+                    }
+                    StatPill {
+                        label: "DISK"
+                        value: ResourceService.disk
+                        icon: "󱛟"
+                        pillColor: cAccent
+                    }
+                    StatPill {
+                        label: "TEMP"
+                        value: Math.round(ResourceService.cpuTemp) + "°C"
+                        icon: ""
+                        pillColor: ResourceService.cpuTemp > 70 ? cRed : cYellow
                     }
                 }
-
-                // Additional system info row
-                RowLayout {
-                    Layout.fillWidth: true; spacing: 10
-                    StatPill {
-                        value: Math.round(ResourceService.gpu) + "%";
-                        icon: "󰢽";
-                        color: cBlue || "#89b4fa"
-                    }
-                    StatPill {
-                        value: ResourceService.disk;
-                        icon: "󱛟";
-                        color: cDim
-                    }
-                    StatPill {
-                        value: Math.round(ResourceService.cpuTemp) + "°C";
-                        icon: "";
-                        color: ResourceService.cpuTemp > 70 ? cRed : cYellow
-                    }
-                }
             }
-        }
-    }
-
-    // COMPONENTS
-    component IconButton: Rectangle {
-        property string icon: ""
-        signal clicked()
-        width: 32; height: 32; radius: 16; color: cSurface
-        Text { anchors.centerIn: parent; text: icon; color: cText; font.pixelSize: 14; font.family: "Symbols Nerd Font" }
-        MouseArea { anchors.fill: parent; hoverEnabled: true; onClicked: parent.clicked() }
-    }
-
-    component QuickTile: Rectangle {
-        property string label: ""; property string icon: ""; property bool active: false
-        signal clicked()
-        Layout.fillWidth: true; height: 50; radius: 12
-        color: active ? cAccent : cSurface
-        RowLayout {
-            anchors.fill: parent; anchors.margins: 10; spacing: 10
-            Text { text: icon; color: active ? cBg : cAccent; font.pixelSize: 16; font.family: "Symbols Nerd Font" }
-            Text { text: label; color: active ? cBg : cText; font.bold: true; font.pixelSize: 12; elide: Text.ElideRight; Layout.fillWidth: true }
-        }
-        MouseArea { anchors.fill: parent; onClicked: parent.clicked() }
-    }
-
-    component SliderModule: RowLayout {
-        property string icon: ""; property real value: 0
-        signal moved(real val); signal iconClicked()
-        spacing: 10
-        IconButton {
-            icon: parent.icon; Layout.preferredWidth: 36; Layout.preferredHeight: 36
-            onClicked: parent.iconClicked()
-        }
-        Slider {
-            Layout.fillWidth: true; value: parent.value
-            background: Rectangle {
-                implicitHeight: 4; radius: 2; color: cSurface
-                Rectangle { width: parent.parent.visualPosition * parent.width; height: parent.height; radius: 2; color: cAccent }
-            }
-            handle: Rectangle {
-                x: parent.leftPadding + parent.visualPosition * (parent.availableWidth - width)
-                y: parent.topPadding + parent.availableHeight / 2 - height / 2
-                width: 12; height: 12; radius: 6; color: "white"
-            }
-            onMoved: parent.moved(value)
-        }
-    }
-
-    component StatPill: RowLayout {
-        property string value: ""; property string icon: ""; property color color: cAccent
-        spacing: 6  // Increased spacing for better readability
-        Text {
-            text: icon;
-            color: parent.color;
-            font.pixelSize: 12;  // Slightly larger icon
-            font.family: "Symbols Nerd Font"
-        }
-        Text {
-            text: value;
-            color: cText;
-            font.bold: true;
-            font.pixelSize: 11  // Slightly larger text
         }
     }
 }

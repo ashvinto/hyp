@@ -1,41 +1,47 @@
 #!/bin/bash
 # scripts/pacman_history.sh
-# Reads the last 50 entries from pacman.log and formats them as JSON
+# Faster, valid JSON parsing using AWK
 
 LOG_FILE="/var/log/pacman.log"
 
-echo "["
-first=true
-
-# Tail the log, reverse it (newest first), filter for relevant actions
-tail -n 200 "$LOG_FILE" | grep -E "installed|upgraded|removed" | tac | while read -r line; do
-    # Format: [2023-10-25T12:00:00-0400] [ALPM] upgraded foobar (1.0 -> 1.1) 
+# Read last 300 lines, filter for actions, and process
+tail -n 300 "$LOG_FILE" | grep -E "installed|upgraded|removed" | awk '
+BEGIN {
+    # Store lines in an array to reverse them later (newest first)
+    count = 0
+}
+{
+    # Line format: [2024-02-09T17:00:00+0530] [ALPM] action package (details)
     
-    # Extract timestamp (between brackets)
-    timestamp=$(echo "$line" | grep -oP '^[\[\]\][^\\\]]+\K')
+    # Extract timestamp (remove brackets)
+    raw_time = substr($1, 2, length($1)-2)
+    # Simplify time: 2024-02-09T17:00:00+0530 -> 2024-02-09 17:00
+    gsub("T", " ", raw_time)
+    split(raw_time, t_parts, "+")
+    time = t_parts[1]
     
-    # Extract action and package info
-    # Remove timestamp and [ALPM] prefix
-    content=$(echo "$line" | sed -E 's/^[[^]]+] [[A-Z]+] //')
+    # Action is $3, Package is $4
+    action = $3
+    pkg = $4
     
-    action=$(echo "$content" | awk '{print $1}')
-    pkg=$(echo "$content" | awk '{print $2}')
+    # Details is everything after $4
+    details = ""
+    for (i=5; i<=NF; i++) {
+        details = details $i " "
+    }
+    gsub("\"", "\\\"", details) # Escape quotes
     
-    # Get details (versions)
-    details=$(echo "$content" | cut -d' ' -f3-)
-    
-    if [ "$first" = true ]; then
-        first=false
-    else
-        echo ","
-    fi
-    
-    # JSON output
-    echo "  {"
-    echo "    \"time\": \"$timestamp\","
-    echo "    \"action\": \"$action\","
-    echo "    \"package\": \"$pkg\","
-    echo "    \"details\": \"$details\""
-    echo "  }"
-done
-echo "]"
+    # Store in array
+    lines[count++] = sprintf("  {\n    \"time\": \"%s\",\n    \"action\": \"%s\",\n    \"package\": \"%s\",\n    \"details\": \"%s\"\n  }", time, action, pkg, details)
+}
+END {
+    print "["
+    # Print in reverse order (newest first)
+    for (i = count - 1; i >= 0; i--) {
+        printf "%s", lines[i]
+        if (i > 0) print ","
+        else print ""
+    }
+    print "]"
+}
+'

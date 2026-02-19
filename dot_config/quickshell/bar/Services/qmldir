@@ -5,6 +5,7 @@ singleton WorkspaceService WorkspaceService.qml
 singleton SystemService SystemService.qml
 singleton QuickSettingsService QuickSettingsService.qml
 singleton ResourceService ResourceService.qml
+singleton ContextService ContextService.qml
 singleton ThemeService ThemeService.qml
 MediaControls MediaControls.qml
 MediaInfo MediaInfo.qml

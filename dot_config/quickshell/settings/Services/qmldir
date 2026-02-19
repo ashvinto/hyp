@@ -1,2 +1,3 @@
 singleton ConfigService ConfigService.qml
 singleton ThemeService ThemeService.qml
+singleton ScriptService ScriptService.qml

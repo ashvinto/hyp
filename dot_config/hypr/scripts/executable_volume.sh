@@ -31,12 +31,15 @@ get_icon() {
 
 # Notify
 notify_user() {
-    if [[ "$(get_volume)" == "Muted" ]]; then
-        notify-send -e -h string:x-canonical-private-synchronous:volume_notif -u low -i "$(get_icon)" " Volume:" " Muted"
+    # Trigger Quickshell OSD with context
+    if pgrep -f "qs -c osd" > /dev/null; then
+        :
     else
-        notify-send -e -h int:value:"$(get_volume | sed 's/%//')" -h string:x-canonical-private-synchronous:volume_notif -u low -i "$(get_icon)" " Volume Level:" " $(get_volume)" &&
-        "$sDIR/Sounds.sh" --volume
+        QS_OSD_TYPE=volume qs -c osd & disown
     fi
+    
+    # Optional: Keep the sound feedback
+    "$sDIR/Sounds.sh" --volume
 }
 
 # Increase Volume
@@ -60,19 +63,22 @@ dec_volume() {
 # Toggle Mute
 toggle_mute() {
 	if [ "$(pamixer --get-mute)" == "false" ]; then
-		pamixer -m && notify-send -e -u low -i "$iDIR/volume-mute.png" " Mute"
+		pamixer -m
 	elif [ "$(pamixer --get-mute)" == "true" ]; then
-		pamixer -u && notify-send -e -u low -i "$(get_icon)" " Volume:" " Switched ON"
+		pamixer -u
 	fi
+    notify_user
 }
 
 # Toggle Mic
 toggle_mic() {
 	if [ "$(pamixer --default-source --get-mute)" == "false" ]; then
-		pamixer --default-source -m && notify-send -e -u low -i "$iDIR/microphone-mute.png" " Microphone:" " Switched OFF"
+		pamixer --default-source -m
 	elif [ "$(pamixer --default-source --get-mute)" == "true" ]; then
-		pamixer -u --default-source u && notify-send -e -u low -i "$iDIR/microphone.png" " Microphone:" " Switched ON"
+		pamixer --default-source -u
 	fi
+    # Use standard notify for mic as OSD is usually for output volume
+    notify-send -e -u low -i "$(get_mic_icon)" " Microphone:" " $(get_mic_volume)"
 }
 # Get Mic Icon
 get_mic_icon() {

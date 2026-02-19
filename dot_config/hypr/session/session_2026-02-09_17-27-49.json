@@ -1,0 +1,26 @@
+[
+  {
+    "address": "0x5631d6a4e800",
+    "class": "vivaldi-stable",
+    "workspace": 1,
+    "cmdline": "/opt/vivaldi/vivaldi-bin --origin-trial-disabled-features=CanvasTextNg|WebAssemblyCustomDescriptors --ozone-platform=wayland --profile-directory=Profile 5 --render-node-override=/dev/dri/renderD129 --restart /opt/vivaldi/vivaldi-bin --origin-trial-disabled-features=CanvasTextNg|WebAssemblyCustomDescriptors --ozone-platform=wayland --profile-directory=Profile 5 --render-node-override=/dev/dri/renderD129 --restart "
+  },
+  {
+    "address": "0x5631d6a1b9a0",
+    "class": "vivaldi-stable",
+    "workspace": 2,
+    "cmdline": "/opt/vivaldi/vivaldi-bin --origin-trial-disabled-features=CanvasTextNg|WebAssemblyCustomDescriptors --ozone-platform=wayland --profile-directory=Profile 5 --render-node-override=/dev/dri/renderD129 --restart /opt/vivaldi/vivaldi-bin --origin-trial-disabled-features=CanvasTextNg|WebAssemblyCustomDescriptors --ozone-platform=wayland --profile-directory=Profile 5 --render-node-override=/dev/dri/renderD129 --restart "
+  },
+  {
+    "address": "0x5631d68ba310",
+    "class": "foot",
+    "workspace": 3,
+    "cmdline": "foot "
+  },
+  {
+    "address": "0x5631d68deac0",
+    "class": "foot",
+    "workspace": 4,
+    "cmdline": "foot "
+  }
+]

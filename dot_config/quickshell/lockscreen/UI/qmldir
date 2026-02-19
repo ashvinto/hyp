@@ -1,0 +1,11 @@
+Lockscreen Lockscreen.qml
+MiniGauge MiniGauge.qml
+ClickableIcon ClickableIcon.qml
+PowerBtn PowerBtn.qml
+QuickTile QuickTile.qml
+SettingSlider SettingSlider.qml
+SettingSwitch SettingSwitch.qml
+SidebarItem SidebarItem.qml
+StatPill StatPill.qml
+ToolBtn ToolBtn.qml
+IconButton IconButton.qml

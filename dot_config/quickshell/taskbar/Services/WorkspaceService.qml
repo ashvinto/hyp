@@ -5,7 +5,7 @@ import Quickshell.Io
 
 Singleton {
     id: root
-    property var workspaces: []
+    property var taskList: []
     property int activeId: 1
 
     function refresh() {
@@ -20,21 +20,20 @@ Singleton {
                 if (!text) return
                 var parts = text.split("---")
                 try {
-                    var wsListRaw = JSON.parse(parts[0])
                     var active = JSON.parse(parts[1])
                     var clients = JSON.parse(parts[2])
 
                     root.activeId = active.id
 
-                    // Map workspace ID -> Array of Icons
-                    var wsApps = {}
+                    // 1. Group unique icons by workspace
+                    var wsGroups = {}
                     
                     for (var i = 0; i < clients.length; i++) {
                         var c = clients[i]
                         var wid = c.workspace.id
-                        if (wid < 0) continue // Skip special workspaces
+                        if (wid < 0) continue 
 
-                        if (!wsApps[wid]) wsApps[wid] = []
+                        if (!wsGroups[wid]) wsGroups[wid] = []
                         
                         var cls = c.class.toLowerCase()
                         var icon = cls
@@ -42,45 +41,57 @@ Singleton {
                         else if (cls.includes("vivaldi")) icon = "vivaldi"
                         else if (cls.includes("code")) icon = "visual-studio-code"
                         else if (cls.includes("kitty")) icon = "kitty"
+                        else if (cls.includes("foot")) icon = "foot"
                         else if (cls.includes("thunar")) icon = "system-file-manager"
                         else if (cls.includes("discord")) icon = "discord"
+                        else if (cls.includes("spotify")) icon = "spotify"
+                        else if (cls.includes("chrome")) icon = "google-chrome"
+                        else if (cls.includes("zen")) icon = "zen-browser"
                         
-                        // Avoid duplicates in the same workspace group
-                        if (wsApps[wid].indexOf(icon) === -1) {
-                            wsApps[wid].push(icon)
+                        if (wsGroups[wid].indexOf(icon) === -1) {
+                            wsGroups[wid].push(icon)
                         }
                     }
 
-                    // Build the final list: 
-                    // Include workspaces that exist in hyprctl OR are the active one
-                    var finalWorkspaces = []
+                    // 2. Build flattened task list
+                    var flatList = []
+                    var occupiedWs = Object.keys(wsGroups).map(Number).sort((a,b) => a-b)
                     
-                    // Helper to check if ID is in list
-                    var existingIds = []
-                    
-                    // 1. Add occupied workspaces from client list
-                    for (var id in wsApps) {
-                        var numId = parseInt(id)
-                        finalWorkspaces.push({
-                            "id": numId,
-                            "apps": wsApps[id]
-                        })
-                        existingIds.push(numId)
+                    // Add all occupied workspaces
+                    for (var j = 0; j < occupiedWs.length; j++) {
+                        var wId = occupiedWs[j]
+                        var apps = wsGroups[wId]
+                        
+                        for (var k = 0; k < apps.length; k++) {
+                            flatList.push({
+                                "wsId": wId,
+                                "icon": apps[k],
+                                "isEmpty": false
+                            })
+                        }
                     }
 
-                    // 2. Ensure active workspace is present even if empty
-                    if (existingIds.indexOf(root.activeId) === -1) {
-                        finalWorkspaces.push({
-                            "id": root.activeId,
-                            "apps": []
+                    // 3. Ensure active workspace is visible if empty
+                    var activeExists = flatList.some(item => item.wsId === root.activeId)
+                    if (!activeExists) {
+                        flatList.push({
+                            "wsId": root.activeId,
+                            "icon": "",
+                            "isEmpty": true
                         })
                     }
 
-                    // 3. Sort by ID
-                    finalWorkspaces.sort((a, b) => a.id - b.id)
-                    root.workspaces = finalWorkspaces
+                    // Sort: Primary by WS ID, then icons alphabetically (optional but cleaner)
+                    flatList.sort((a, b) => {
+                        if (a.wsId !== b.wsId) return a.wsId - b.wsId
+                        return a.icon.localeCompare(b.icon)
+                    })
 
-                } catch(e) {}
+                    root.taskList = flatList
+
+                } catch(e) {
+                    console.error("[WorkspaceService] Parse error:", e)
+                }
             }
         }
     }

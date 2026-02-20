@@ -6,6 +6,8 @@ singleton QuickSettingsService QuickSettingsService.qml
 singleton ResourceService ResourceService.qml
 singleton ThemeService ThemeService.qml
 singleton ConfigService ConfigService.qml
+singleton TodoService TodoService.qml
+singleton WeatherService WeatherService.qml
 MediaControls MediaControls.qml
 MediaInfo MediaInfo.qml
 FullMediaPlayer FullMediaPlayer.qml

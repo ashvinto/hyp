@@ -1,3 +1,8 @@
 singleton ThemeService ThemeService.qml
 singleton ConfigService ConfigService.qml
 singleton ScriptService ScriptService.qml
+singleton TodoService TodoService.qml
+singleton QuickSettingsService QuickSettingsService.qml
+singleton ResourceService ResourceService.qml
+singleton PlayerService PlayerService.qml
+singleton WeatherService WeatherService.qml

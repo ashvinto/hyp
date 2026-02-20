@@ -1,7 +1,7 @@
-Lockscreen Lockscreen.qml
-TodoList TodoList.qml
-MiniGauge MiniGauge.qml
+Taskbar Taskbar.qml
 ClickableIcon ClickableIcon.qml
+IconButton IconButton.qml
+MiniGauge MiniGauge.qml
 PowerBtn PowerBtn.qml
 QuickTile QuickTile.qml
 SettingSlider SettingSlider.qml
@@ -10,6 +10,4 @@ SettingSwitch SettingSwitch.qml
 SidebarItem SidebarItem.qml
 StatPill StatPill.qml
 ToolBtn ToolBtn.qml
-IconButton IconButton.qml
 SliderModule SliderModule.qml
-CompactMediaPlayer CompactMediaPlayer.qml

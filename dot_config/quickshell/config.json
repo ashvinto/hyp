@@ -2,7 +2,7 @@
     "zenMode": false,
     "dockScale": 1.3,
     "glassOpacity": 0.85,
-    "showTaskbar": false,
+    "showTaskbar": true,
     "nightLightWarmth": 5332,
     "softwareDim": 1,
     "blurEnabled": false,

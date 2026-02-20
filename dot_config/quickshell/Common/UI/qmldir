@@ -1,0 +1,15 @@
+IconButton IconButton.qml
+ToolBtn ToolBtn.qml
+SettingSwitch SettingSwitch.qml
+SettingSlider SettingSlider.qml
+SidebarItem SidebarItem.qml
+SettingsPage SettingsPage.qml
+QuickTile QuickTile.qml
+SliderModule SliderModule.qml
+StatPill StatPill.qml
+PowerBtn PowerBtn.qml
+MiniGauge MiniGauge.qml
+ClickableIcon ClickableIcon.qml
+TodoList TodoList.qml
+FullMediaPlayer FullMediaPlayer.qml
+CompactMediaPlayer CompactMediaPlayer.qml

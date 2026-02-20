@@ -6,15 +6,30 @@ import Quickshell.Io
 Singleton {
     id: root
 
-    // Property to hold the list of todos
     property var todos: []
 
-    // Initialize
-    Component.onCompleted: {
-        loadTodos()
+    // Use FileView for reliable file reading
+    FileView {
+        id: todoFile
+        path: "/home/zoro/.config/quickshell/todo_data.json"
+        onLoaded: root.loadTodos()
+        onTextChanged: root.loadTodos()
     }
 
-    // Function to add a new todo
+    function loadTodos() {
+        var raw = todoFile.text()
+        if (raw && raw.trim() !== "") {
+            try {
+                root.todos = JSON.parse(raw)
+                console.log("[TodoService] Loaded " + root.todos.length + " tasks via FileView")
+            } catch (e) {
+                console.error("[TodoService] JSON Parse error:", e)
+            }
+        }
+    }
+
+    Component.onCompleted: loadTodos()
+
     function addTodo(task) {
         if (task && task.trim() !== "") {
             var newTodo = {
@@ -29,7 +44,6 @@ Singleton {
         }
     }
 
-    // Function to remove a todo
     function removeTodo(index) {
         if (index >= 0 && index < todos.length) {
             var newTodos = todos.slice()
@@ -39,7 +53,6 @@ Singleton {
         }
     }
 
-    // Function to toggle a todo's completion status
     function toggleTodo(index) {
         if (index >= 0 && index < todos.length) {
             var newTodos = todos.slice()
@@ -49,7 +62,6 @@ Singleton {
         }
     }
 
-    // Function to get the count of completed todos
     readonly property int completedCount: {
         var count = 0
         for (var i = 0; i < todos.length; i++) {
@@ -58,7 +70,6 @@ Singleton {
         return count
     }
 
-    // Function to get the count of pending todos
     readonly property int pendingCount: {
         var count = 0
         for (var i = 0; i < todos.length; i++) {
@@ -78,32 +89,9 @@ Singleton {
         saveTodos()
     }
 
-    // Process object to load todos
-    Process {
-        id: loadProc
-        command: ["cat", "/home/zoro/.config/quickshell/todo_data.json"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                if (text && text.trim() !== "") {
-                    try {
-                        root.todos = JSON.parse(text)
-                    } catch (e) {
-                        console.log("Error parsing todo data:", e)
-                        root.todos = []
-                    }
-                }
-            }
-        }
-    }
-
-    // Load todos
-    function loadTodos() {
-        loadProc.running = true
-    }
-
-    // Save todos to a file
     function saveTodos() {
         var jsonString = JSON.stringify(todos)
-        Quickshell.execDetached(["sh", "-c", `mkdir -p ~/.config/quickshell && echo '${jsonString}' > ~/.config/quickshell/todo_data.json`])
+        var cmd = "mkdir -p ~/.config/quickshell && echo '" + jsonString + "' > ~/.config/quickshell/todo_data.json"
+        Quickshell.execDetached(["sh", "-c", cmd])
     }
 }
